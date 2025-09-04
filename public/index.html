@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviator - Telegram Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 400px;
+            margin: 0 auto;
+            background: #0f1419;
+        }
+
+        .header {
+            background: #1a1f2e;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2a3441;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .balance {
+            background: #00d4ff;
+            color: #0f1419;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+
+        .connection-status.connected {
+            background: #27ae60;
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .game-area {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(45deg, #1a1f2e, #2a3441);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+        }
+
+        .multiplier-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            margin-bottom: 10px;
+            transition: all 0.1s ease;
+        }
+
+        .multiplier-display.crashed {
+            color: #ff4757;
+            animation: crash 0.5s ease-in-out;
+        }
+
+        @keyframes crash {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .game-status {
+            font-size: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .betting-phase { color: #ffa502; }
+        .playing-phase { color: #00ff88; }
+        .crashed-phase { color: #ff4757; }
+
+        .plane {
+            font-size: 40px;
+            animation: fly 3s ease-in-out infinite;
+            margin: 20px 0;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .plane.flying {
+            animation: flight 2s ease-in-out infinite;
+        }
+
+        .plane.crashed {
+            animation: crash-plane 1s ease-in forwards;
+            color: #ff4757;
+        }
+
+        @keyframes fly {
+            0%, 100% { 
+                transform: translateY(0px) rotate(0deg); 
+            }
+            50% { 
+                transform: translateY(-15px) rotate(-5deg); 
+            }
+        }
+
+        @keyframes flight {
+            0%, 100% { 
+                transform: translateY(-20px) rotate(-8deg) scale(1.1); 
+            }
+            50% { 
+                transform: translateY(-30px) rotate(-12deg) scale(1.15); 
+            }
+        }
+
+        @keyframes crash-plane {
+            0% { 
+                transform: translateY(-20px) rotate(-10deg) scale(1.1); 
+            }
+            50% { 
+                transform: translateY(-10px) rotate(-45deg) scale(0.9); 
+            }
+            100% { 
+                transform: translateY(20px) rotate(-90deg) scale(0.7); 
+                opacity: 0.5;
+            }
+        }
+
+        .controls {
+            background: #1a1f2e;
+            padding: 20px;
+            border-top: 1px solid #2a3441;
+        }
+
+        .bet-section {
+            margin-bottom: 20px;
+        }
+
+        .bet-input {
+            width: 100%;
+            padding: 12px;
+            background: #2a3441;
+            border: 1px solid #3e4651;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .bet-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .bet-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .quick-bet {
+            flex: 1;
+            padding: 8px;
+            background: #3e4651;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .quick-bet:hover {
+            background: #4a5568;
+            transform: translateY(-1px);
+        }
+
+        .quick-bet:active {
+            transform: translateY(0);
+        }
+
+        .main-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .bet-button {
+            background: linear-gradient(45deg, #00ff88, #00e67d);
+            color: #0f1419;
+        }
+
+        .bet-button:hover:not(:disabled) {
+            background: linear-gradient(45deg, #00e67d, #00d971);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .bet-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .cashout-button {
+            background: linear-gradient(45deg, #ff4757, #ff3838);
+            color: white;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .cashout-button:hover {
+            background: linear-gradient(45deg, #ff3838, #ff2f2f);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
+        }
+
+        .game-history {
+            background: #1a1f2e;
+            padding: 15px;
+            border-top: 1px solid #2a3441;
+        }
+
+        .history-title {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #8892b0;
+            font-weight: 500;
+        }
+
+        .history-items {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .history-item {
+            min-width: 50px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: center;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .history-item.low {
+            background: #ff4757;
+            color: white;
+        }
+
+        .history-item.medium {
+            background: #ffa502;
+            color: white;
+        }
+
+        .history-item.high {
+            background: #00ff88;
+            color: #0f1419;
+        }
+
+        .passenger-list {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(26, 31, 46, 0.9);
+            border-radius: 8px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            max-width: 180px;
+        }
+
+        .passenger-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            font-size: 12px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #00ff88;
+            color: #0f1419;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            max-width: 300px;
+            font-size: 14px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #ff4757;
+            color: white;
+        }
+
+        .notification.info {
+            background: #00d4ff;
+            color: #0f1419;
+        }
+
+        .notification.success {
+            background: #00ff88;
+            color: #0f1419;
+        }
+
+        .countdown {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffa502;
+            margin: 10px 0;
+            text-shadow: 0 0 10px rgba(255, 165, 2, 0.5);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            .multiplier-display {
+                font-size: 40px;
+            }
+            
+            .plane {
+                font-size: 35px;
+            }
+            
+            .controls {
+                padding: 15px;
+            }
+            
+            .bet-input {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .main-button {
+                padding: 12px;
+                font-size: 16px;
+            }
+
+            .notification {
+                right: 10px;
+                max-width: calc(100vw - 20px);
+                font-size: 12px;
+            }
+        }
+
+        /* Telegram WebApp specific styles */
+        .telegram-ui {
+            --tg-theme-bg-color: #0f1419;
+            --tg-theme-text-color: #ffffff;
+            --tg-theme-hint-color: #8892b0;
+            --tg-theme-link-color: #00d4ff;
+            --tg-theme-button-color: #00ff88;
+            --tg-theme-button-text-color: #0f1419;
+        }
+
+        /* Game state indicators */
+        .game-indicator {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .game-indicator.betting {
+            background: #ffa502;
+            color: white;
+        }
+
+        .game-indicator.playing {
+            background: #00ff88;
+            color: #0f1419;
+        }
+
+        .game-indicator.crashed {
+            background: #ff4757;
+            color: white;
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            .plane, .multiplier-display, .notification {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <div class="connection-status" id="connectionStatus">Connecting...</div>
+        
+        <div class="header">
+            <div class="logo">🛩️ AVIATOR</div>
+            <div class="balance" id="balance">Loading...</div>
+        </div>
+
+        <div class="game-area">
+            <div class="game-indicator" id="gameIndicator" style="display: none;">WAITING</div>
+            
+            <div class="passenger-list" id="passengerList" style="display: none;">
+                <div style="font-weight: bold; margin-bottom: 5px; color: #00d4ff;">Passengers:</div>
+            </div>
+            
+            <div class="multiplier-display" id="multiplier">1.00x</div>
+            <div class="game-status" id="gameStatus">Connecting to game...</div>
+            <div class="countdown" id="countdown" style="display: none;"></div>
+            <div class="plane" id="plane">🛩️</div>
+        </div>
+
+        <div class="controls">
+            <div class="bet-section">
+                <input type="number" class="bet-input" id="betAmount" placeholder="Ticket price (Stars)" min="1" max="1000" value="10">
+                <div class="bet-buttons">
+                    <button class="quick-bet" onclick="setBetAmount(5)">5⭐</button>
+                    <button class="quick-bet" onclick="setBetAmount(10)">10⭐</button>
+                    <button class="quick-bet" onclick="setBetAmount(25)">25⭐</button>
+                    <button class="quick-bet" onclick="setBetAmount(50)">50⭐</button>
+                    <button class="quick-bet" onclick="setBetAmount(100)">100⭐</button>
+                </div>
+                <button class="main-button bet-button" id="mainButton" onclick="handleMainButton()">
+                    Connecting...
+                </button>
+            </div>
+        </div>
+
+        <div class="game-history">
+            <div class="history-title">🛩️ Flight History</div>
+            <div class="history-items" id="historyItems">
+                <!-- History items will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        class AviatorGame {
+            constructor() {
+                this.socket = null;
+                this.gameState = 'waiting';
+                this.currentMultiplier = 1.00;
+                this.userBalance = 1000;
+                this.hasBet = false;
+                this.betAmount = 0;
+                this.telegramId = this.getTelegramId();
+                this.username = this.getUsername();
+                this.passengers = new Map();
+                this.gameHistory = [];
+                this.connectionStatus = 'disconnected';
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.countdownInterval = null;
+                
+                this.initializeSocket();
+                this.registerUser();
+                this.updateUI();
+                this.setupEventListeners();
+                this.initializeTelegramWebApp();
+            }
+
+            getTelegramId() {
+                // Try to get from Telegram WebApp first
+                if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                    const user = window.Telegram.WebApp.initDataUnsafe?.user;
+                    if (user) {
+                        console.log('📱 Got Telegram user:', user);
+                        return user.id;
+                    }
+                }
+                
+                // Fallback to localStorage for testing
+                let storedId = localStorage.getItem('aviator_user_id');
+                if (!storedId) {
+                    storedId = Math.floor(Math.random() * 1000000);
+                    localStorage.setItem('aviator_user_id', storedId);
+                    console.log('🎯 Generated test user ID:', storedId);
+                }
+                return parseInt(storedId);
+            }
+
+            getUsername() {
+                if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                    const user = window.Telegram.WebApp.initDataUnsafe?.user;
+                    if (user) {
+                        return user.username || user.first_name || `Player${this.telegramId}`;
+                    }
+                }
+                return localStorage.getItem('aviator_username') || `Player${this.telegramId}`;
+            }
+
+            initializeTelegramWebApp() {
+                if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                    const tg = window.Telegram.WebApp;
+                    
+                    console.log('📱 Telegram WebApp detected');
+                    
+                    tg.ready();
+                    tg.expand();
+                    tg.enableClosingConfirmation();
+                    
+                    // Apply Telegram theme
+                    if (tg.colorScheme === 'dark') {
+                        document.body.classList.add('telegram-ui');
+                        document.documentElement.style.setProperty('--tg-color-scheme', 'dark');
+                    }
+
+                    // Store user info
+                    const user = tg.initDataUnsafe?.user;
+                    if (user) {
+                        localStorage.setItem('aviator_username', user.username || user.first_name);
+                        console.log('👤 Telegram user stored:', user.username || user.first_name);
+                    }
+
+                    // Setup haptic feedback
+                    this.hapticFeedback = tg.HapticFeedback;
+                } else {
+                    console.log('🌐 Running in web browser mode');
+                }
+            }
+
+            setupEventListeners() {
+                // Enter key to place bet/bail out
+                document.getElementById('betAmount').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        handleMainButton();
+                    }
+                });
+
+                // Input validation
+                document.getElementById('betAmount').addEventListener('input', (e) => {
+                    const value = parseInt(e.target.value);
+                    if (value > 1000) e.target.value = 1000;
+                    if (value < 1) e.target.value = 1;
+                });
+
+                // Handle page visibility changes
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        console.log('📱 App hidden');
+                    } else {
+                        console.log('📱 App visible');
+                        this.refreshGameState();
+                    }
+                });
+
+                // Handle online/offline events
+                window.addEventListener('online', () => {
+                    console.log('🌐 Back online');
+                    if (this.socket && !this.socket.connected) {
+                        this.initializeSocket();
+                    }
+                });
+
+                window.addEventListener('offline', () => {
+                    console.log('📵 Gone offline');
+                    this.showNotification('Connection lost. Check your internet.', 'error');
+                });
+            }
+
+            async registerUser() {
+                try {
+                    const response = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            telegramId: this.telegramId,
+                            username: this.username,
+                            firstName: this.username.split('Player')[1] ? 'User' : this.username
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        this.userBalance = data.user.balance;
+                        this.updateBalance();
+                        console.log('✅ User registered:', data.user);
+                        this.showNotification(`Welcome ${this.username}! 🎮`, 'success');
+                    }
+                } catch (error) {
+                    console.error('❌ Registration failed:', error);
+                    this.showNotification('Connection error. Please refresh.', 'error');
+                }
+            }
+
+            initializeSocket() {
+                console.log('🔌 Initializing socket connection...');
+                
+                if (this.socket) {
+                    this.socket.disconnect();
+                }
+                
+                // Initialize socket connection
+                this.socket = io({
+                    transports: ['websocket', 'polling'],
+                    timeout: 20000,
+                    reconnection: true,
+                    reconnectionDelay: 1000,
+                    reconnectionAttempts: this.maxReconnectAttempts
+                });
+
+                // Connection events
+                this.socket.on('connect', () => {
+                    console.log('✅ Connected to server');
+                    this.connectionStatus = 'connected';
+                    this.reconnectAttempts = 0;
+                    this.updateConnectionStatus();
+                    
+                    // Authenticate user
+                    this.socket.emit('authenticate', {
+                        telegramId: this.telegramId,
+                        username: this.username
+                    });
+                    
+                    this.showNotification('Connected to game! 🎮', 'success');
+                });
+
+                this.socket.on('disconnect', (reason) => {
+                    console.log('❌ Disconnected:', reason);
+                    this.connectionStatus = 'disconnected';
+                    this.updateConnectionStatus();
+                    
+                    if (reason !== 'io client disconnect') {
+                        this.showNotification('Connection lost. Reconnecting...', 'error');
+                    }
+                });
+
+                this.socket.on('reconnect', (attemptNumber) => {
+                    console.log('🔄 Reconnected to server (attempt', attemptNumber, ')');
+                    this.connectionStatus = 'connected';
+                    this.reconnectAttempts = 0;
+                    this.updateConnectionStatus();
+                    this.refreshGameState();
+                    this.showNotification('Reconnected! 🎮', 'success');
+                });
+
+                this.socket.on('reconnect_error', (error) => {
+                    this.reconnectAttempts++;
+                    console.log('❌ Reconnection failed:', error, 'Attempt:', this.reconnectAttempts);
+                    
+                    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+                        this.showNotification('Connection failed. Please refresh the page.', 'error');
+                    }
+                });
+
+                // Game events
+                this.socket.on('gameState', (data) => {
+                    console.log('🎮 Game state received:', data);
+                    this.gameState = data.state || 'waiting';
+                    this.currentMultiplier = data.currentMultiplier || 1.00;
+                    this.updateUI();
+                    this.updateMultiplier();
+                    this.updateGameIndicator();
+                    
+                    // Update bet limits
+                    if (data.config) {
+                        const betInput = document.getElementById('betAmount');
+                        betInput.min = data.config.minBet || 1;
+                        betInput.max = data.config.maxBet || 1000;
+                    }
+                });
+
+                this.socket.on('bettingPhase', (data) => {
+                    console.log('💰 Betting phase started:', data);
+                    this.gameState = 'betting';
+                    this.hasBet = false;
+                    this.passengers.clear();
+                    this.updateUI();
+                    this.updatePlaneAnimation();
+                    this.updateGameIndicator();
+                    this.startCountdown(data.timeLeft);
+                    
+                    // Update bet limits
+                    if (data.minBet && data.maxBet) {
+                        const betInput = document.getElementById('betAmount');
+                        betInput.min = data.minBet;
+                        betInput.max = data.maxBet;
+                    }
+                });
+
+                this.socket.on('flightStarted', (data) => {
+                    console.log('🛫 Flight started:', data);
+                    this.gameState = 'playing';
+                    this.updateUI();
+                    this.updatePlaneAnimation();
+                    this.updateGameIndicator();
+                    this.hideCountdown();
+                    this.showNotification(data.message, 'info');
+                    
+                    if (this.hapticFeedback) {
+                        this.hapticFeedback.impactOccurred('light');
+                    }
+                });
+
+                this.socket.on('altitudeUpdate', (data) => {
+                    this.currentMultiplier = data.altitude;
+                    this.updateMultiplier();
+                    this.updatePlaneAnimation();
+                });
+
+                this.socket.on('planeCrashed', (data) => {
+                    console.log('💥 Plane crashed:', data);
+                    this.gameState = 'crashed';
+                    this.currentMultiplier = data.crashPoint;
+                    this.updateUI();
+                    this.updatePlaneAnimation();
+                    this.updateGameIndicator();
+                    this.addToHistory(data.crashPoint);
+                    this.showNotification(data.message, 'error');
+                    
+                    if (this.hapticFeedback) {
+                        this.hapticFeedback.impactOccurred('heavy');
+                    }
+                    
+                    // Update user balance from results
+                    const userResult = data.results.find(r => r.userId === this.telegramId);
+                    if (userResult && userResult.survived) {
+                        this.userBalance += userResult.payout || 0;
+                        this.showNotification(`Survived! Won ${userResult.payout} Stars! 🪂`, 'success');
+                    } else if (userResult) {
+                        this.showNotification(`Plane crashed! Lost ${userResult.bet} Stars 💥`, 'error');
+                    }
+                    this.updateBalance();
+                });
+
+                this.socket.on('ticketPurchased', (data) => {
+                    console.log('🎫 Ticket purchased:', data);
+                    this.passengers.set(data.userId, {
+                        username: data.username,
+                        amount: data.amount
+                    });
+                    this.updatePassengerList();
+                    
+                    if (data.userId !== this.telegramId) {
+                        this.showNotification(`${data.username} bought a ticket! ✈️`, 'info');
+                    }
+                });
+
+                this.socket.on('passengerBailedOut', (data) => {
+                    console.log('🪂 Passenger bailed out:', data);
+                    if (data.userId === this.telegramId) {
+                        this.hasBet = false;
+                        this.userBalance = data.newBalance || this.userBalance;
+                        this.updateBalance();
+                        this.showNotification(`Bailed out at ${data.altitude.toFixed(2)}x! 🪂`, 'success');
+                    } else {
+                        this.showNotification(`${data.username} bailed out at ${data.altitude.toFixed(2)}x!`, 'info');
+                    }
+                    this.updateUI();
+                });
+
+                // Admin notifications
+                this.socket.on('adminNotification', (data) => {
+                    console.log('📢 Admin notification:', data);
+                    this.showNotification(`📢 ${data.message}`, data.type || 'info');
+                });
+
+                // Error handling
+                this.socket.on('connect_error', (error) => {
+                    console.error('❌ Connection error:', error);
+                    this.connectionStatus = 'error';
+                    this.updateConnectionStatus();
+                });
+            }
+
+            refreshGameState() {
+                if (this.socket && this.socket.connected) {
+                    console.log('🔄 Refreshing game state...');
+                    // The server will send current state on reconnection automatically
+                }
+            }
+
+            updateConnectionStatus() {
+                const statusEl = document.getElementById('connectionStatus');
+                
+                switch (this.connectionStatus) {
+                    case 'connected':
+                        statusEl.textContent = '🟢 Live';
+                        statusEl.className = 'connection-status connected';
+                        break;
+                    case 'disconnected':
+                        statusEl.textContent = '🔴 Offline';
+                        statusEl.className = 'connection-status disconnected';
+                        break;
+                    case 'error':
+                        statusEl.textContent = '⚠️ Error';
+                        statusEl.className = 'connection-status disconnected';
+                        break;
+                    default:
+                        statusEl.textContent = '⏳ Connecting';
+                        statusEl.className = 'connection-status disconnected';
+                }
+            }
+
+            updateGameIndicator() {
+                const indicatorEl = document.getElementById('gameIndicator');
+                
+                switch (this.gameState) {
+                    case 'betting':
+                        indicatorEl.textContent = 'BOARDING';
+                        indicatorEl.className = 'game-indicator betting';
+                        indicatorEl.style.display = 'block';
+                        break;
+                    case 'playing':
+                        indicatorEl.textContent = 'FLYING';
+                        indicatorEl.className = 'game-indicator playing';
+                        indicatorEl.style.display = 'block';
+                        break;
+                    case 'crashed':
+                        indicatorEl.textContent = 'CRASHED';
+                        indicatorEl.className = 'game-indicator crashed';
+                        indicatorEl.style.display = 'block';
+                        setTimeout(() => {
+                            indicatorEl.style.display = 'none';
+                        }, 3000);
+                        break;
+                    default:
+                        indicatorEl.style.display = 'none';
+                }
+            }
+
+            async placeBet() {
+                const betAmount = parseInt(document.getElementById('betAmount').value);
+                
+                if (!betAmount || betAmount < 1) {
+                    this.showNotification('Please enter a valid bet amount!', 'error');
+                    return;
+                }
+
+                if (betAmount > this.userBalance) {
+                    this.showNotification('Insufficient balance!', 'error');
+                    return;
+                }
+
+                if (this.gameState !== 'betting') {
+                    this.showNotification('Betting phase has ended!', 'error');
+                    return;
+                }
+
+                if (this.hasBet) {
+                    this.showNotification('You already have a ticket!', 'error');
+                    return;
+                }
+
+                console.log('🎫 Placing bet:', betAmount);
+                
+                this.socket.emit('placeBet', {
+                    amount: betAmount,
+                    telegramId: this.telegramId
+                });
+
+                this.hasBet = true;
+                this.betAmount = betAmount;
+                this.userBalance -= betAmount;
+                this.updateBalance();
+                this.updateUI();
+                
+                if (this.hapticFeedback) {
+                    this.hapticFeedback.impactOccurred('light');
+                }
+            }
+
+            bailOut() {
+                if (!this.hasBet || this.gameState !== 'playing') {
+                    this.showNotification('Cannot bail out now!', 'error');
+                    return;
+                }
+
+                console.log('🪂 Bailing out at:', this.currentMultiplier);
+                
+                this.socket.emit('bailOut', {
+                    telegramId: this.telegramId,
+                    multiplier: this.currentMultiplier
+                });
+
+                if (this.hapticFeedback) {
+                    this.hapticFeedback.impactOccurred('medium');
+                }
+            }
+
+            updateUI() {
+                const mainButton = document.getElementById('mainButton');
+                const gameStatus = document.getElementById('gameStatus');
+                
+                switch (this.gameState) {
+                    case 'betting':
+                        if (this.hasBet) {
+                            mainButton.textContent = 'Ticket Purchased ✈️';
+                            mainButton.className = 'main-button bet-button';
+                            mainButton.disabled = true;
+                            gameStatus.textContent = 'Waiting for takeoff...';
+                            gameStatus.className = 'game-status betting-phase';
+                        } else {
+                            mainButton.textContent = 'Buy Ticket';
+                            mainButton.className = 'main-button bet-button';
+                            mainButton.disabled = false;
+                            gameStatus.textContent = 'Boarding passengers...';
+                            gameStatus.className = 'game-status betting-phase';
+                        }
+                        break;
+                        
+                    case 'playing':
+                        if (this.hasBet) {
+                            mainButton.textContent = `Bail Out (${this.currentMultiplier.toFixed(2)}x)`;
+                            mainButton.className = 'main-button cashout-button';
+                            mainButton.disabled = false;
+                            gameStatus.textContent = 'Flight in progress!';
+                            gameStatus.className = 'game-status playing-phase';
+                        } else {
+                            mainButton.textContent = 'Watching Flight';
+                            mainButton.className = 'main-button bet-button';
+                            mainButton.disabled = true;
+                            gameStatus.textContent = 'Flight in progress!';
+                            gameStatus.className = 'game-status playing-phase';
+                        }
+                        break;
+                        
+                    case 'crashed':
+                        mainButton.textContent = 'Plane Crashed!';
+                        mainButton.className = 'main-button bet-button';
+                        mainButton.disabled = true;
+                        gameStatus.textContent = 'Next flight starting soon...';
+                        gameStatus.className = 'game-status crashed-phase';
+                        this.hasBet = false;
+                        break;
+                        
+                    default:
+                        mainButton.textContent = 'Connecting...';
+                        mainButton.className = 'main-button bet-button';
+                        mainButton.disabled = true;
+                        gameStatus.textContent = 'Connecting to game...';
+                        gameStatus.className = 'game-status';
+                }
+            }
+
+            updateMultiplier() {
+                const multiplierEl = document.getElementById('multiplier');
+                multiplierEl.textContent = `${this.currentMultiplier.toFixed(2)}x`;
+                
+                if (this.gameState === 'crashed') {
+                    multiplierEl.classList.add('crashed');
+                    setTimeout(() => {
+                        multiplierEl.classList.remove('crashed');
+                    }, 500);
+                }
+            }
+
+            updateBalance() {
+                document.getElementById('balance').textContent = `${this.userBalance} ⭐`;
+            }
+
+            updatePlaneAnimation() {
+                const planeEl = document.getElementById('plane');
+                
+                // Remove existing classes
+                planeEl.className = 'plane';
+                
+                switch (this.gameState) {
+                    case 'betting':
+                        // Default animation
+                        break;
+                    case 'playing':
+                        planeEl.classList.add('flying');
+                        break;
+                    case 'crashed':
+                        planeEl.classList.add('crashed');
+                        break;
+                }
+            }
+
+            updatePassengerList() {
+                const passengerListEl = document.getElementById('passengerList');
+                
+                if (this.passengers.size === 0) {
+                    passengerListEl.style.display = 'none';
+                    return;
+                }
+                
+                passengerListEl.style.display = 'block';
+                
+                // Clear existing passengers (except header)
+                const existingItems = passengerListEl.querySelectorAll('.passenger-item');
+                existingItems.forEach(item => item.remove());
+                
+                // Add current passengers
+                this.passengers.forEach((passenger, userId) => {
+                    const item = document.createElement('div');
+                    item.className = 'passenger-item';
+                    item.innerHTML = `
+                        <span>${passenger.username}</span>
+                        <span>${passenger.amount}⭐</span>
+                    `;
+                    passengerListEl.appendChild(item);
+                });
+            }
+
+            addToHistory(crashPoint) {
+                this.gameHistory.unshift(crashPoint);
+                if (this.gameHistory.length > 10) {
+                    this.gameHistory.pop();
+                }
+                
+                const historyEl = document.getElementById('historyItems');
+                historyEl.innerHTML = '';
+                
+                this.gameHistory.forEach(point => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.textContent = `${point.toFixed(2)}x`;
+                    
+                    if (point < 2) {
+                        item.classList.add('low');
+                    } else if (point < 5) {
+                        item.classList.add('medium');
+                    } else {
+                        item.classList.add('high');
+                    }
+                    
+                    historyEl.appendChild(item);
+                });
+            }
+
+            startCountdown(seconds) {
+                const countdownEl = document.getElementById('countdown');
+                countdownEl.style.display = 'block';
+                
+                if (this.countdownInterval) {
+                    clearInterval(this.countdownInterval);
+                }
+                
+                let timeLeft = seconds;
+                countdownEl.textContent = `Takeoff in ${timeLeft}s`;
+                
+                this.countdownInterval = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft <= 0) {
+                        this.hideCountdown();
+                        return;
+                    }
+                    countdownEl.textContent = `Takeoff in ${timeLeft}s`;
+                }, 1000);
+            }
+
+            hideCountdown() {
+                const countdownEl = document.getElementById('countdown');
+                countdownEl.style.display = 'none';
+                
+                if (this.countdownInterval) {
+                    clearInterval(this.countdownInterval);
+                    this.countdownInterval = null;
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Global functions for HTML onclick handlers
+        function handleMainButton() {
+            if (window.game) {
+                if (window.game.gameState === 'betting' && !window.game.hasBet) {
+                    window.game.placeBet();
+                } else if (window.game.gameState === 'playing' && window.game.hasBet) {
+                    window.game.bailOut();
+                }
+            }
+        }
+
+        function setBetAmount(amount) {
+            document.getElementById('betAmount').value = amount;
+        }
+
+        // Initialize game when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎮 Initializing Aviator Game...');
+            window.game = new AviatorGame();
+        });
+
+        // Handle Telegram WebApp events
+        if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+            window.Telegram.WebApp.onEvent('mainButtonClicked', () => {
+                handleMainButton();
+            });
+            
+            window.Telegram.WebApp.onEvent('backButtonClicked', () => {
+                window.Telegram.WebApp.close();
+            });
+        }
+
+        // Service Worker for offline functionality (optional)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(err => {
+                console.log('Service worker registration failed:', err);
+            });
+        }
+
+        // Handle app installation (PWA)
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        // Error handling
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e.error);
+            if (window.game) {
+                window.game.showNotification('An error occurred. Please refresh.', 'error');
+            }
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('Unhandled promise rejection:', e.reason);
+            if (window.game) {
+                window.game.showNotification('Connection error occurred.', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

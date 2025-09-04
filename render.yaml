@@ -1,0 +1,18 @@
+# render.yaml - Render.com deployment config
+services:
+  - type: web
+    name: aviator-telegram-bot
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        generateValue: true
+    # Add these environment variables in Render dashboard:
+    # BOT_TOKEN - Your Telegram bot token
+    # ADMIN_SECRET - Admin dashboard password
+    # WEB_APP_URL - Will be: https://your-service-name.onrender.com
+    # JWT_SECRET - Random string for JWT tokens
