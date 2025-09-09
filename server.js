@@ -17,9 +17,6 @@ const io = socketIo(server, {
   }
 });
 
-// Import Telegram bot
-const AviatorTelegramBot = require('./telegram-bot');
-
 // Middleware
 app.use(cors());
 app.use(express.json());
