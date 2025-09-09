@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -26,8 +27,8 @@ app.use(express.static('public'));
 
 // Configuration
 const CONFIG = {
-  BOT_TOKEN: process.env.BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE',
-  WEB_APP_URL: process.env.WEB_APP_URL || 'https://your-domain.com',
+  BOT_TOKEN: process.env.BOT_TOKEN || '8227482134:AAFE5qRhJJ_QoxlYmu5pJ4ooHP-_1DDcnGQ',
+  WEB_APP_URL: process.env.WEB_APP_URL || 'https://telegram-bot-aviator.onrender.com',
   PORT: process.env.PORT || 3000,
   RTP: parseFloat(process.env.RTP) || 0.98,
   HOUSE_EDGE: parseFloat(process.env.HOUSE_EDGE) || 0.02,
@@ -37,7 +38,7 @@ const CONFIG = {
   MAX_BET: parseInt(process.env.MAX_BET) || 1000,
   STARTING_BALANCE: parseInt(process.env.STARTING_BALANCE) || 1000,
   ADMIN_SECRET: process.env.ADMIN_SECRET || 'admin123',
-  JWT_SECRET: process.env.JWT_SECRET || 'your_jwt_secret_here'
+  JWT_SECRET: process.env.JWT_SECRET || 'a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456789012345678901234567890abcdef123456789012345678901234567890ab'
 };
 
 // Global storage (use database in production)
@@ -686,7 +687,7 @@ app.get('/api/docs', (req, res) => {
 
 // Initialize Telegram bot
 let telegramBot;
-if (CONFIG.BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
+if (CONFIG.BOT_TOKEN !== '8227482134:AAFE5qRhJJ_QoxlYmu5pJ4ooHP-_1DDcnGQ') {
   try {
     telegramBot = new AviatorTelegramBot(CONFIG.BOT_TOKEN, CONFIG.WEB_APP_URL);
     console.log('🤖 Telegram bot initialized');
