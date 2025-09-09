@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1f2e">
     <title>Aviator - Telegram Game</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <style>
@@ -13,186 +17,649 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #2a3441 100%);
             color: white;
             overflow-x: hidden;
             user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overscroll-behavior: none;
         }
 
         .game-container {
             display: flex;
             flex-direction: column;
             height: 100vh;
-            max-width: 400px;
-            margin: 0 auto;
-            background: #0f1419;
+            height: calc(var(--vh, 1vh) * 100);
+            width: 100vw;
+            max-width: 100%;
+            margin: 0;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #2a3441 100%);
+            position: relative;
+            overflow: hidden;
+            border-radius: 0;
         }
 
+        /* Mobile Header */
         .header {
-            background: #1a1f2e;
-            padding: 15px;
+            background: linear-gradient(135deg, #1a1f2e 0%, #2a3441 100%);
+            padding: 15px 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #2a3441;
+            border-bottom: 2px solid rgba(0, 255, 136, 0.3);
+            backdrop-filter: blur(20px);
             position: relative;
+            z-index: 10;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .menu-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .menu-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Navigation Menu */
+        .nav-menu {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 300px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1f2e 0%, #2a3441 100%);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            transition: right 0.3s ease;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .nav-menu.active {
+            right: 0;
+        }
+
+        .nav-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .nav-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+        }
+
+        .nav-item:hover {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: #00ff88;
+            transform: translateX(5px);
+        }
+
+        .nav-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .nav-text {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .nav-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1f2e 0%, #2a3441 100%);
+            border-radius: 20px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #00ff88;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 16px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: black;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ff4757 0%, #c44569 100%);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+        }
+
+        /* Tabs */
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: #00ff88;
+            color: black;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Transaction History */
+        .transaction-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .transaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .transaction-type {
+            font-weight: 600;
+            color: #00ff88;
+        }
+
+        .transaction-amount {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .transaction-amount.positive {
+            color: #00ff88;
+        }
+
+        .transaction-amount.negative {
+            color: #ff4757;
+        }
+
+        .transaction-details {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Profile Stats */
+        .profile-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: black;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            z-index: 3000;
+            animation: slideInNotification 0.3s ease;
+            max-width: 300px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #ff4757 0%, #c44569 100%);
+            color: white;
+        }
+
+        .notification.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #f39c12 100%);
+            color: black;
+        }
+
+        @keyframes slideInNotification {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         .logo {
-            font-size: 20px;
-            font-weight: bold;
-            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .balance {
-            background: #00d4ff;
-            color: #0f1419;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-weight: bold;
+        .logo-icon {
+            font-size: 24px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             font-size: 14px;
         }
 
-        .connection-status {
-            position: absolute;
-            top: 5px;
-            right: 10px;
-            padding: 2px 8px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: bold;
-            opacity: 0.8;
+        .balance {
+            background: rgba(0, 255, 136, 0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #00ff88;
+            font-weight: 600;
         }
 
-        .connection-status.connected {
-            background: #27ae60;
-            color: white;
-        }
-
-        .connection-status.disconnected {
-            background: #e74c3c;
-            color: white;
-        }
-
+        /* Game Area */
         .game-area {
             flex: 1;
+            display: flex;
+            flex-direction: column;
             position: relative;
-            background: linear-gradient(45deg, #1a1f2e, #2a3441);
+            background: radial-gradient(circle at center, #1a2332 0%, #0f1419 100%);
+        }
+
+        .flight-display {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 300px;
+            position: relative;
+            padding: 20px;
+            overflow: hidden;
         }
 
-        .multiplier-display {
+        .multiplier {
             font-size: 48px;
-            font-weight: bold;
-            color: #00ff88;
-            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
-            margin-bottom: 10px;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px currentColor;
             transition: all 0.1s ease;
         }
 
-        .multiplier-display.crashed {
+        .multiplier.flying {
+            color: #00ff88;
+            animation: pulse 0.5s ease-in-out infinite alternate;
+        }
+
+        .multiplier.crashed {
             color: #ff4757;
-            animation: crash 0.5s ease-in-out;
         }
 
-        @keyframes crash {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+        .multiplier.waiting {
+            color: #ffc107;
         }
-
-        .game-status {
-            font-size: 16px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .betting-phase { color: #ffa502; }
-        .playing-phase { color: #00ff88; }
-        .crashed-phase { color: #ff4757; }
 
         .plane {
-            font-size: 40px;
-            animation: fly 3s ease-in-out infinite;
-            margin: 20px 0;
+            font-size: 80px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 0 20px currentColor);
             position: relative;
-            transition: all 0.3s ease;
+            z-index: 5;
         }
 
         .plane.flying {
-            animation: flight 2s ease-in-out infinite;
+            color: #00ff88;
+            animation: flyAdvanced 3s ease-in-out infinite, glow 2s ease-in-out infinite alternate;
+            transform: translateY(-10px) rotate(-15deg);
         }
 
         .plane.crashed {
-            animation: crash-plane 1s ease-in forwards;
+            color: #ff4757;
+            animation: crash 0.8s ease-out forwards, explode 0.3s ease-out 0.5s forwards;
+        }
+
+        .plane.waiting {
+            color: #ffc107;
+            animation: idle 4s ease-in-out infinite;
+            transform: translateY(5px);
+        }
+
+        .plane.takeoff {
+            color: #00ff88;
+            animation: takeoff 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+
+        .status {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .status.flying {
+            color: #00ff88;
+        }
+
+        .status.crashed {
             color: #ff4757;
         }
 
-        @keyframes fly {
-            0%, 100% { 
-                transform: translateY(0px) rotate(0deg); 
-            }
-            50% { 
-                transform: translateY(-15px) rotate(-5deg); 
-            }
+        .status.waiting {
+            color: #ffc107;
         }
 
-        @keyframes flight {
-            0%, 100% { 
-                transform: translateY(-20px) rotate(-8deg) scale(1.1); 
-            }
-            50% { 
-                transform: translateY(-30px) rotate(-12deg) scale(1.15); 
-            }
-        }
-
-        @keyframes crash-plane {
-            0% { 
-                transform: translateY(-20px) rotate(-10deg) scale(1.1); 
-            }
-            50% { 
-                transform: translateY(-10px) rotate(-45deg) scale(0.9); 
-            }
-            100% { 
-                transform: translateY(20px) rotate(-90deg) scale(0.7); 
-                opacity: 0.5;
-            }
-        }
-
-        .controls {
-            background: #1a1f2e;
-            padding: 20px;
-            border-top: 1px solid #2a3441;
+        /* Betting Controls */
+        .betting-controls {
+            background: linear-gradient(135deg, rgba(26, 31, 46, 0.95) 0%, rgba(42, 52, 65, 0.95) 100%);
+            backdrop-filter: blur(25px);
+            padding: 25px;
+            border-top: 2px solid rgba(0, 255, 136, 0.3);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
         }
 
         .bet-section {
+            display: flex;
+            gap: 15px;
             margin-bottom: 20px;
+            align-items: center;
         }
 
         .bet-input {
-            width: 100%;
-            padding: 12px;
-            background: #2a3441;
-            border: 1px solid #3e4651;
-            border-radius: 8px;
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.2);
             color: white;
-            font-size: 16px;
-            margin-bottom: 10px;
+            padding: 15px 20px;
+            border-radius: 15px;
+            font-size: 18px;
             text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
 
         .bet-input:focus {
             outline: none;
             border-color: #00d4ff;
+            box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
         }
 
-        .bet-buttons {
+        .bet-btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: black;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 18px;
+            min-width: 140px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .bet-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
+            background: linear-gradient(135deg, #00ff88 0%, #00e676 100%);
+        }
+
+        .bet-btn:disabled {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            color: rgba(255, 255, 255, 0.4);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .bet-btn:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .cashout-btn {
+            background: linear-gradient(135deg, #ff4757 0%, #c44569 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .cashout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .cashout-btn:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .cashout-btn.inactive {
+            background: linear-gradient(135deg, #444 0%, #666 100%);
+            color: rgba(255, 255, 255, 0.6);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0.7;
+        }
+
+        .cashout-btn.inactive:hover {
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Quick bet buttons */
+        .quick-bets {
             display: flex;
             gap: 8px;
             margin-bottom: 15px;
@@ -200,1006 +667,1591 @@
 
         .quick-bet {
             flex: 1;
-            padding: 8px;
-            background: #3e4651;
-            border: none;
-            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
             cursor: pointer;
-            font-size: 12px;
             transition: all 0.2s ease;
         }
 
         .quick-bet:hover {
-            background: #4a5568;
-            transform: translateY(-1px);
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
         }
 
-        .quick-bet:active {
-            transform: translateY(0);
+        /* Statistics */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
-        .main-button {
-            width: 100%;
-            padding: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
+        .stat-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
             border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            text-align: center;
         }
 
-        .bet-button {
-            background: linear-gradient(45deg, #00ff88, #00e67d);
-            color: #0f1419;
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 4px;
         }
 
-        .bet-button:hover:not(:disabled) {
-            background: linear-gradient(45deg, #00e67d, #00d971);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #00ff88;
         }
 
-        .bet-button:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .cashout-button {
-            background: linear-gradient(45deg, #ff4757, #ff3838);
-            color: white;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .cashout-button:hover {
-            background: linear-gradient(45deg, #ff3838, #ff2f2f);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
-        }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
-            50% { box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
-        }
-
-        .game-history {
-            background: #1a1f2e;
-            padding: 15px;
-            border-top: 1px solid #2a3441;
-        }
-
-        .history-title {
-            font-size: 14px;
-            margin-bottom: 10px;
-            color: #8892b0;
-            font-weight: 500;
-        }
-
-        .history-items {
+        /* History */
+        .history {
             display: flex;
-            gap: 8px;
+            gap: 4px;
             overflow-x: auto;
-            padding-bottom: 5px;
+            padding: 10px 0;
+            margin-bottom: 15px;
         }
 
         .history-item {
             min-width: 50px;
             padding: 6px 8px;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 12px;
+            font-weight: 600;
             text-align: center;
-            font-weight: bold;
-            white-space: nowrap;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .history-item.low {
-            background: #ff4757;
-            color: white;
+            background: rgba(255, 71, 87, 0.2);
+            border-color: #ff4757;
+            color: #ff4757;
         }
 
         .history-item.medium {
-            background: #ffa502;
-            color: white;
+            background: rgba(255, 193, 7, 0.2);
+            border-color: #ffc107;
+            color: #ffc107;
         }
 
         .history-item.high {
-            background: #00ff88;
-            color: #0f1419;
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+            color: #00ff88;
         }
 
-        .passenger-list {
+        /* Enhanced Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
+        }
+
+        @keyframes flyAdvanced {
+            0%, 100% { 
+                transform: translateX(0px) translateY(-10px) rotate(-15deg); 
+            }
+            25% { 
+                transform: translateX(15px) translateY(-20px) rotate(-20deg); 
+            }
+            50% { 
+                transform: translateX(0px) translateY(-5px) rotate(-10deg); 
+            }
+            75% { 
+                transform: translateX(-15px) translateY(-15px) rotate(-18deg); 
+            }
+        }
+
+        @keyframes takeoff {
+            0% { 
+                transform: translateY(5px) rotate(0deg) scale(1); 
+                opacity: 1;
+            }
+            30% { 
+                transform: translateY(-10px) rotate(-10deg) scale(1.1); 
+                opacity: 1;
+            }
+            100% { 
+                transform: translateY(-15px) rotate(-15deg) scale(1.2); 
+                opacity: 1;
+            }
+        }
+
+        @keyframes crash {
+            0% { 
+                transform: translateY(-10px) rotate(-15deg) scale(1.2); 
+                filter: drop-shadow(0 0 20px #00ff88);
+            }
+            50% { 
+                transform: translateY(20px) rotate(180deg) scale(0.8); 
+                filter: drop-shadow(0 0 30px #ff4757);
+            }
+            100% { 
+                transform: translateY(40px) rotate(270deg) scale(0.5); 
+                filter: drop-shadow(0 0 40px #ff4757);
+                opacity: 0.3;
+            }
+        }
+
+        @keyframes explode {
+            0% { 
+                opacity: 0.3; 
+                transform: translateY(40px) rotate(270deg) scale(0.5);
+            }
+            50% { 
+                opacity: 0.8; 
+                transform: translateY(35px) rotate(315deg) scale(1.5);
+                filter: drop-shadow(0 0 50px #ff4757) brightness(2);
+            }
+            100% { 
+                opacity: 0; 
+                transform: translateY(50px) rotate(360deg) scale(0.1);
+                filter: drop-shadow(0 0 60px #ff4757) brightness(3);
+            }
+        }
+
+        @keyframes idle {
+            0%, 100% { 
+                transform: translateY(5px) rotate(0deg); 
+            }
+            50% { 
+                transform: translateY(-5px) rotate(3deg); 
+            }
+        }
+
+        @keyframes glow {
+            0% { 
+                filter: drop-shadow(0 0 20px #00ff88); 
+            }
+            100% { 
+                filter: drop-shadow(0 0 40px #00ff88) drop-shadow(0 0 60px #00ff88); 
+            }
+        }
+
+        @keyframes slideInNotification {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Particle Effects */
+        .particles {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(26, 31, 46, 0.9);
-            border-radius: 8px;
-            padding: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-            max-width: 180px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
         }
 
-        .passenger-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 3px 0;
-            font-size: 12px;
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
             background: #00ff88;
-            color: #0f1419;
-            padding: 10px 15px;
-            border-radius: 6px;
-            font-weight: bold;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            z-index: 1000;
-            max-width: 300px;
-            font-size: 14px;
+            border-radius: 50%;
+            animation: particleFloat 4s linear infinite;
         }
 
-        .notification.show {
-            transform: translateX(0);
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-10vh) rotate(360deg);
+                opacity: 0;
+            }
         }
 
-        .notification.error {
-            background: #ff4757;
-            color: white;
-        }
-
-        .notification.info {
-            background: #00d4ff;
-            color: #0f1419;
-        }
-
-        .notification.success {
-            background: #00ff88;
-            color: #0f1419;
-        }
-
-        .countdown {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ffa502;
-            margin: 10px 0;
-            text-shadow: 0 0 10px rgba(255, 165, 2, 0.5);
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-            color: #7f8c8d;
-        }
-
-        .loading.show {
-            display: block;
-        }
-
-        /* Mobile optimizations */
+        /* Responsive */
         @media (max-width: 480px) {
-            .multiplier-display {
-                font-size: 40px;
+            .header {
+                padding: 10px 15px;
+            }
+            
+            .multiplier {
+                font-size: 36px;
             }
             
             .plane {
-                font-size: 35px;
+                font-size: 50px;
             }
             
-            .controls {
+            .betting-controls {
                 padding: 15px;
-            }
-            
-            .bet-input {
-                padding: 10px;
-                font-size: 14px;
-            }
-            
-            .main-button {
-                padding: 12px;
-                font-size: 16px;
-            }
-
-            .notification {
-                right: 10px;
-                max-width: calc(100vw - 20px);
-                font-size: 12px;
-            }
-        }
-
-        /* Telegram WebApp specific styles */
-        .telegram-ui {
-            --tg-theme-bg-color: #0f1419;
-            --tg-theme-text-color: #ffffff;
-            --tg-theme-hint-color: #8892b0;
-            --tg-theme-link-color: #00d4ff;
-            --tg-theme-button-color: #00ff88;
-            --tg-theme-button-text-color: #0f1419;
-        }
-
-        /* Game state indicators */
-        .game-indicator {
-            position: absolute;
-            top: 50px;
-            right: 10px;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .game-indicator.betting {
-            background: #ffa502;
-            color: white;
-        }
-
-        .game-indicator.playing {
-            background: #00ff88;
-            color: #0f1419;
-        }
-
-        .game-indicator.crashed {
-            background: #ff4757;
-            color: white;
-        }
-
-        /* Accessibility */
-        @media (prefers-reduced-motion: reduce) {
-            .plane, .multiplier-display, .notification {
-                animation: none !important;
-                transition: none !important;
             }
         }
     </style>
 </head>
 <body>
     <div class="game-container" id="gameContainer">
-        <div class="connection-status" id="connectionStatus">Connecting...</div>
-        
+        <!-- Header -->
         <div class="header">
-            <div class="logo">🛩️ AVIATOR</div>
-            <div class="balance" id="balance">Loading...</div>
+            <div class="logo">
+                <div class="logo-icon">✈️</div>
+                <div class="logo-text">AVIATOR</div>
+            </div>
+            <div class="user-info">
+                <div class="balance" id="balance">1000⭐</div>
+                <button class="menu-button" onclick="toggleMenu()" id="menuBtn">☰</button>
+            </div>
         </div>
 
+        <!-- Navigation Menu -->
+        <div class="nav-overlay" id="navOverlay" onclick="closeMenu()"></div>
+        <div class="nav-menu" id="navMenu">
+            <div class="nav-header">
+                <h3>Menu</h3>
+                <button class="nav-close" onclick="closeMenu()">×</button>
+            </div>
+            
+            <div class="nav-item" onclick="openModal('profileModal')">
+                <div class="nav-icon">👤</div>
+                <div class="nav-text">Profile</div>
+            </div>
+            
+            <div class="nav-item" onclick="openModal('depositModal')">
+                <div class="nav-icon">💰</div>
+                <div class="nav-text">Deposit Stars</div>
+            </div>
+            
+            <div class="nav-item" onclick="openModal('withdrawModal')">
+                <div class="nav-icon">💸</div>
+                <div class="nav-text">Withdraw</div>
+            </div>
+            
+            <div class="nav-item" onclick="openModal('historyModal')">
+                <div class="nav-icon">📊</div>
+                <div class="nav-text">Game History</div>
+            </div>
+            
+            <div class="nav-item" onclick="openModal('transactionsModal')">
+                <div class="nav-icon">📋</div>
+                <div class="nav-text">Transactions</div>
+            </div>
+            
+            <div class="nav-item" onclick="openModal('notificationsModal')">
+                <div class="nav-icon">🔔</div>
+                <div class="nav-text">Notifications</div>
+                <div class="nav-badge" id="notificationBadge">3</div>
+            </div>
+            
+            <div class="nav-item" onclick="openModal('settingsModal')">
+                <div class="nav-icon">⚙️</div>
+                <div class="nav-text">Settings</div>
+            </div>
+        </div>
+
+        <!-- Game Area -->
         <div class="game-area">
-            <div class="game-indicator" id="gameIndicator" style="display: none;">WAITING</div>
-            
-            <div class="passenger-list" id="passengerList" style="display: none;">
-                <div style="font-weight: bold; margin-bottom: 5px; color: #00d4ff;">Passengers:</div>
+            <div class="flight-display">
+                <div class="particles" id="particles"></div>
+                <div class="multiplier waiting" id="multiplier">1.00x</div>
+                <div class="plane waiting" id="plane">✈️</div>
+                <div class="status waiting" id="status">Waiting for next flight...</div>
             </div>
-            
-            <div class="multiplier-display" id="multiplier">1.00x</div>
-            <div class="game-status" id="gameStatus">Connecting to game...</div>
-            <div class="countdown" id="countdown" style="display: none;"></div>
-            <div class="plane" id="plane">🛩️</div>
+
+            <!-- Sound Effects -->
+            <audio id="takeoffSound" preload="auto">
+                <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+            </audio>
+            <audio id="crashSound" preload="auto">
+                <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+            </audio>
+            <audio id="winSound" preload="auto">
+                <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+            </audio>
+            <audio id="betSound" preload="auto">
+                <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+            </audio>
         </div>
 
-        <div class="controls">
-            <div class="bet-section">
-                <input type="number" class="bet-input" id="betAmount" placeholder="Ticket price (Stars)" min="1" max="1000" value="10">
-                <div class="bet-buttons">
-                    <button class="quick-bet" onclick="setBetAmount(5)">5⭐</button>
-                    <button class="quick-bet" onclick="setBetAmount(10)">10⭐</button>
-                    <button class="quick-bet" onclick="setBetAmount(25)">25⭐</button>
-                    <button class="quick-bet" onclick="setBetAmount(50)">50⭐</button>
-                    <button class="quick-bet" onclick="setBetAmount(100)">100⭐</button>
+        <!-- Betting Controls -->
+        <div class="betting-controls">
+            <!-- Statistics -->
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">Total Bet</div>
+                    <div class="stat-value" id="totalBet">0⭐</div>
                 </div>
-                <button class="main-button bet-button" id="mainButton" onclick="handleMainButton()">
-                    Connecting...
-                </button>
+                <div class="stat-item">
+                    <div class="stat-label">Total Win</div>
+                    <div class="stat-value" id="totalWin">0⭐</div>
+                </div>
             </div>
-        </div>
 
-        <div class="game-history">
-            <div class="history-title">🛩️ Flight History</div>
-            <div class="history-items" id="historyItems">
-                <!-- History items will be populated here -->
+            <!-- History -->
+            <div class="history" id="history">
+                <div class="history-item low">1.2x</div>
+                <div class="history-item medium">3.4x</div>
+                <div class="history-item high">8.7x</div>
+                <div class="history-item low">1.8x</div>
+                <div class="history-item medium">2.9x</div>
+            </div>
+
+            <!-- Quick Bets -->
+            <div class="quick-bets">
+                <div class="quick-bet" onclick="setBet(10)">10⭐</div>
+                <div class="quick-bet" onclick="setBet(50)">50⭐</div>
+                <div class="quick-bet" onclick="setBet(100)">100⭐</div>
+                <div class="quick-bet" onclick="setBet(500)">500⭐</div>
+            </div>
+
+            <!-- Betting Section -->
+            <div class="bet-section">
+                <input type="number" class="bet-input" id="betAmount" placeholder="Bet Amount" value="100" min="10">
+                <button class="bet-btn" id="placeBet" onclick="placeBet()">Place Bet</button>
+            </div>
+
+            <!-- Cashout Button -->
+            <button class="cashout-btn" id="cashoutBtn" onclick="cashout()" disabled>Cash Out</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let gameState = 'waiting'; // waiting, betting, flying, crashed
+        let currentMultiplier = 1.00;
+        let playerBet = 0;
+        let hasBet = false;
+        let balance = 1000;
+        let socket = null;
+        let gameInterval = null;
+        let multiplierInterval = null;
+        let history = [1.2, 3.4, 8.7, 1.8, 2.9, 4.1, 2.3, 6.8, 1.5, 9.2];
+        let totalBet = 0;
+        let totalWin = 0;
+
+        // DOM elements
+        const multiplierEl = document.getElementById('multiplier');
+        const planeEl = document.getElementById('plane');
+        const statusEl = document.getElementById('status');
+        const betAmountEl = document.getElementById('betAmount');
+        const placeBetBtn = document.getElementById('placeBet');
+        const cashoutBtn = document.getElementById('cashoutBtn');
+        const balanceEl = document.getElementById('balance');
+        const totalBetEl = document.getElementById('totalBet');
+        const totalWinEl = document.getElementById('totalWin');
+        const historyEl = document.getElementById('history');
+
+        // Initialize game
+        // Sound Management System
+        let soundEnabled = true;
+        let sounds = {};
+
+        function initSounds() {
+            sounds.takeoff = document.getElementById('takeoffSound');
+            sounds.crash = document.getElementById('crashSound');
+            sounds.win = document.getElementById('winSound');
+            sounds.bet = document.getElementById('betSound');
+            
+            // Create synthetic sounds using Web Audio API
+            createSyntheticSounds();
+        }
+
+        function createSyntheticSounds() {
+            if (typeof(AudioContext) !== "undefined" || typeof(webkitAudioContext) !== "undefined") {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Create takeoff sound
+                sounds.takeoffSynth = () => {
+                    if (!soundEnabled) return;
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.5);
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                };
+                
+                // Create crash sound
+                sounds.crashSynth = () => {
+                    if (!soundEnabled) return;
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.8);
+                    oscillator.type = 'sawtooth';
+                    
+                    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.8);
+                };
+                
+                // Create win sound
+                sounds.winSynth = () => {
+                    if (!soundEnabled) return;
+                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C-E-G-C
+                    notes.forEach((freq, index) => {
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        oscillator.frequency.value = freq;
+                        oscillator.type = 'sine';
+                        
+                        gainNode.gain.setValueAtTime(0, audioContext.currentTime + index * 0.1);
+                        gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + index * 0.1 + 0.05);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + index * 0.1 + 0.3);
+                        
+                        oscillator.start(audioContext.currentTime + index * 0.1);
+                        oscillator.stop(audioContext.currentTime + index * 0.1 + 0.3);
+                    });
+                };
+                
+                // Create bet sound
+                sounds.betSynth = () => {
+                    if (!soundEnabled) return;
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'square';
+                    
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                };
+            }
+        }
+
+        function playSound(soundName) {
+            if (!soundEnabled) return;
+            
+            // Try synthetic sound first
+            if (sounds[soundName + 'Synth']) {
+                try {
+                    sounds[soundName + 'Synth']();
+                } catch (e) {
+                    console.log('Synthetic sound failed:', e);
+                }
+            }
+            
+            // Fallback to HTML5 audio
+            if (sounds[soundName] && sounds[soundName].play) {
+                try {
+                    sounds[soundName].currentTime = 0;
+                    sounds[soundName].play().catch(e => console.log('Audio play failed:', e));
+                } catch (e) {
+                    console.log('HTML5 audio failed:', e);
+                }
+            }
+        }
+
+        // Particle System
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 4 + 's';
+            particle.style.animationDuration = (2 + Math.random() * 2) + 's';
+            
+            const colors = ['#00ff88', '#00d4ff', '#ffc107', '#ff4757'];
+            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+            
+            document.getElementById('particles').appendChild(particle);
+            
+            setTimeout(() => {
+                if (particle.parentElement) {
+                    particle.remove();
+                }
+            }, 6000);
+        }
+
+        function createExplosionEffect() {
+            const explosionContainer = document.createElement('div');
+            explosionContainer.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 1px;
+                height: 1px;
+                pointer-events: none;
+                z-index: 10;
+            `;
+            
+            document.querySelector('.flight-display').appendChild(explosionContainer);
+            
+            // Create multiple explosion particles
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                const angle = (i / 20) * Math.PI * 2;
+                const distance = 50 + Math.random() * 100;
+                const size = 4 + Math.random() * 8;
+                
+                particle.style.cssText = `
+                    position: absolute;
+                    width: ${size}px;
+                    height: ${size}px;
+                    background: #ff4757;
+                    border-radius: 50%;
+                    animation: explodeParticle 1s ease-out forwards;
+                    transform: translate(-50%, -50%);
+                `;
+                
+                particle.style.setProperty('--end-x', Math.cos(angle) * distance + 'px');
+                particle.style.setProperty('--end-y', Math.sin(angle) * distance + 'px');
+                
+                explosionContainer.appendChild(particle);
+            }
+            
+            // Add explosion keyframe if not exists
+            if (!document.getElementById('explosion-keyframes')) {
+                const style = document.createElement('style');
+                style.id = 'explosion-keyframes';
+                style.textContent = `
+                    @keyframes explodeParticle {
+                        0% {
+                            transform: translate(-50%, -50%) scale(1);
+                            opacity: 1;
+                        }
+                        100% {
+                            transform: translate(calc(-50% + var(--end-x)), calc(-50% + var(--end-y))) scale(0);
+                            opacity: 0;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            setTimeout(() => {
+                explosionContainer.remove();
+            }, 1000);
+        }
+
+        function startParticleSystem() {
+            // Create particles periodically
+            setInterval(() => {
+                if (gameState === 'flying') {
+                    createParticle();
+                }
+            }, 500);
+        }
+
+        function init() {
+            // Initialize game state
+            gameState = 'waiting';
+            currentMultiplier = 1.00;
+            hasBet = false;
+            
+            // Initialize sounds
+            initSounds();
+            startParticleSystem();
+            
+            try {
+                socket = io();
+                
+                socket.on('connect', () => {
+                    console.log('Connected to server');
+                });
+
+                socket.on('gameState', (data) => {
+                    updateGameState(data);
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('Disconnected from server');
+                });
+            } catch (error) {
+                console.log('Socket.io not available, running in demo mode');
+                // Start demo mode after a short delay
+                setTimeout(() => {
+                    startDemoMode();
+                }, 1000);
+            }
+
+            // Always update display on init
+            updateDisplay();
+            updateHistory();
+            
+            // Log initial state for debugging
+            console.log('🚀 Game initialized! GameState:', gameState, 'HasBet:', hasBet);
+        }
+
+        // Demo mode for standalone operation
+        function startDemoMode() {
+            console.log('🎮 Demo mode started!');
+            
+            // Start first betting phase immediately
+            setTimeout(startBettingPhase, 2000);
+            
+            setInterval(() => {
+                if (gameState === 'waiting') {
+                    startBettingPhase();
+                } else if (gameState === 'betting') {
+                    startFlyingPhase();
+                } else if (gameState === 'flying') {
+                    if (Math.random() < 0.02 + (currentMultiplier - 1) * 0.01) {
+                        crashPlane();
+                    } else {
+                        currentMultiplier += 0.01;
+                        updateDisplay();
+                    }
+                }
+            }, 100);
+        }
+
+        // Game phases
+        function startBettingPhase() {
+            gameState = 'betting';
+            currentMultiplier = 1.00;
+            hasBet = false;
+            updateDisplay();
+            
+            // Visual feedback for betting phase
+            console.log('🎯 BETTING PHASE - Place your bet now! Cashout button is INACTIVE (gray)');
+            
+            setTimeout(() => {
+                if (gameState === 'betting') {
+                    startFlyingPhase();
+                }
+            }, 8000); // Extended to 8 seconds for testing
+        }
+
+        function startFlyingPhase() {
+            gameState = 'flying';
+            updateDisplay();
+            
+            // Visual feedback for flying phase
+            console.log('✈️ FLYING PHASE - Plane is flying! Cashout button is ' + 
+                       (hasBet ? 'ACTIVE (red, you have a bet!)' : 'INACTIVE (gray, no bet placed)'));
+            
+            multiplierInterval = setInterval(() => {
+                if (gameState === 'flying') {
+                    currentMultiplier += Math.random() * 0.02 + 0.01;
+                    updateDisplay();
+                    
+                    // Random crash chance that increases with multiplier (made longer for testing)
+                    const crashChance = 0.003 + (currentMultiplier - 1) * 0.001;
+                    if (Math.random() < crashChance) {
+                        crashPlane();
+                    }
+                }
+            }, 100);
+        }
+
+        function crashPlane() {
+            gameState = 'crashed';
+            clearInterval(multiplierInterval);
+            
+            console.log('💥 CRASH! Plane crashed at ' + currentMultiplier.toFixed(2) + 'x');
+            
+            // Add to history
+            history.unshift(currentMultiplier);
+            if (history.length > 10) {
+                history.pop();
+            }
+            
+            updateDisplay();
+            updateHistory();
+            
+            // If player had a bet and didn't cash out, they lose
+            if (hasBet && playerBet > 0) {
+                console.log('😢 You lost your bet of ' + playerBet + ' coins!');
+                totalBet += playerBet;
+                playerBet = 0;
+                hasBet = false;
+                updateStats();
+            } else {
+                console.log('ℹ️ No bet was placed, so no loss.');
+            }
+            
+            setTimeout(() => {
+                gameState = 'waiting';
+                console.log('⏳ WAITING PHASE - Getting ready for next round...');
+                updateDisplay();
+                setTimeout(startBettingPhase, 3000);
+            }, 3000);
+        }
+
+        // Betting functions
+        function setBet(amount) {
+            if (gameState === 'waiting' || gameState === 'betting') {
+                betAmountEl.value = amount;
+            }
+        }
+
+        function placeBet() {
+            const betAmount = parseInt(betAmountEl.value);
+            
+            if (gameState !== 'betting') {
+                showNotification('Wait for the betting phase!', 'warning');
+                return;
+            }
+            
+            if (betAmount < 10 || betAmount > balance) {
+                showNotification('Invalid bet amount!', 'error');
+                return;
+            }
+            
+            if (hasBet) {
+                showNotification('You already have a bet placed!', 'warning');
+                return;
+            }
+            
+            playerBet = betAmount;
+            balance -= betAmount;
+            hasBet = true;
+            
+            // Console feedback for testing
+            console.log('🎲 BET PLACED! Amount: ' + betAmount + '⭐ - Cashout button is now ' + 
+                       (gameState === 'flying' ? 'ACTIVE (red)' : 'INACTIVE (gray, waiting for takeoff)'));
+            
+            // Play bet sound and animation
+            playSound('bet');
+            animateBetPlacement();
+            
+            updateDisplay();
+            updateStats();
+            showNotification(`Bet placed: ${betAmount}⭐`, 'success');
+        }
+
+        function animateBetPlacement() {
+            const betBtn = document.getElementById('placeBet');
+            betBtn.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                betBtn.style.transform = 'scale(1)';
+            }, 150);
+        }
+
+        function setBet(amount) {
+            betAmountEl.value = amount;
+            playSound('bet');
+            
+            // Animate the selected quick bet button
+            event.target.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                event.target.style.transform = 'scale(1)';
+            }, 150);
+        }
+
+        function cashout() {
+            if (gameState !== 'flying' || !hasBet) {
+                return;
+            }
+            
+            const winAmount = Math.floor(playerBet * currentMultiplier);
+            balance += winAmount;
+            totalBet += playerBet;
+            totalWin += winAmount;
+            
+            console.log('💰 CASHOUT SUCCESS! Won ' + winAmount + '⭐ at ' + currentMultiplier.toFixed(2) + 'x multiplier');
+            
+            // Play win sound and animation
+            playSound('win');
+            animateWin();
+            
+            // Record game result
+            addGameResult(playerBet, currentMultiplier, true);
+            addTransaction('win', winAmount, `Game win at ${currentMultiplier.toFixed(2)}x`);
+            
+            playerBet = 0;
+            hasBet = false;
+            
+            updateDisplay();
+            updateStats();
+            
+            showNotification(`🎉 Won ${winAmount}⭐ at ${currentMultiplier.toFixed(2)}x!`, 'success');
+        }
+
+        function animateWin() {
+            const planeEl = document.getElementById('plane');
+            const multiplierEl = document.getElementById('multiplier');
+            
+            // Create win flash effect
+            const flashOverlay = document.createElement('div');
+            flashOverlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(45deg, rgba(0, 255, 136, 0.3), rgba(0, 212, 255, 0.3));
+                pointer-events: none;
+                z-index: 5;
+                animation: winFlash 0.6s ease-out;
+            `;
+            
+            document.querySelector('.flight-display').appendChild(flashOverlay);
+            
+            // Animate multiplier
+            multiplierEl.style.transform = 'scale(1.2)';
+            multiplierEl.style.textShadow = '0 0 30px #00ff88';
+            
+            setTimeout(() => {
+                multiplierEl.style.transform = 'scale(1)';
+                multiplierEl.style.textShadow = '0 0 20px currentColor';
+                flashOverlay.remove();
+            }, 600);
+            
+            // Add win flash keyframes if not exists
+            if (!document.getElementById('win-flash-keyframes')) {
+                const style = document.createElement('style');
+                style.id = 'win-flash-keyframes';
+                style.textContent = `
+                    @keyframes winFlash {
+                        0% { opacity: 0; }
+                        50% { opacity: 1; }
+                        100% { opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Update functions
+        function updateDisplay() {
+            // Multiplier
+            multiplierEl.textContent = currentMultiplier.toFixed(2) + 'x';
+            multiplierEl.className = `multiplier ${gameState}`;
+            
+            // Plane
+            planeEl.className = `plane ${gameState}`;
+            
+            // Status
+            let statusText = '';
+            switch (gameState) {
+                case 'waiting':
+                    statusText = 'Waiting for next flight...';
+                    break;
+                case 'betting':
+                    statusText = 'Place your bets!';
+                    break;
+                case 'flying':
+                    statusText = 'Flying... Cash out anytime!';
+                    break;
+                case 'crashed':
+                    statusText = `Crashed at ${currentMultiplier.toFixed(2)}x`;
+                    break;
+            }
+            statusEl.textContent = statusText;
+            statusEl.className = `status ${gameState}`;
+            
+            // Buttons - both work the same way with disabled property
+            placeBetBtn.disabled = gameState !== 'betting' || hasBet;
+            cashoutBtn.disabled = gameState !== 'flying' || !hasBet;
+            
+            // Update cashout button text
+            if (hasBet && gameState === 'flying') {
+                cashoutBtn.textContent = `Cash Out ${Math.floor(playerBet * currentMultiplier)}⭐`;
+            } else {
+                cashoutBtn.textContent = 'Cash Out';
+            }
+            
+            // Balance
+            balanceEl.textContent = balance + '⭐';
+        }
+
+        function updateStats() {
+            totalBetEl.textContent = totalBet + '⭐';
+            totalWinEl.textContent = totalWin + '⭐';
+        }
+
+        function updateHistory() {
+            historyEl.innerHTML = '';
+            history.forEach(mult => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.textContent = mult.toFixed(2) + 'x';
+                
+                if (mult < 2) {
+                    item.classList.add('low');
+                } else if (mult < 5) {
+                    item.classList.add('medium');
+                } else {
+                    item.classList.add('high');
+                }
+                
+                historyEl.appendChild(item);
+            });
+        }
+
+        function updateGameState(data) {
+            const previousState = gameState;
+            gameState = data.state;
+            currentMultiplier = data.multiplier || 1.00;
+            
+            // Handle state transitions with animations and sounds
+            if (previousState !== gameState) {
+                handleStateTransition(previousState, gameState, data);
+            }
+            
+            updateDisplay();
+            
+            if (data.state === 'crashed') {
+                history.unshift(data.crashMultiplier);
+                if (history.length > 10) {
+                    history.pop();
+                }
+                updateHistory();
+                
+                // Handle crash for player with active bet
+                if (hasBet) {
+                    addGameResult(playerBet, currentMultiplier, false);
+                    addTransaction('loss', -playerBet, `Game loss at ${currentMultiplier.toFixed(2)}x`);
+                    playerBet = 0;
+                    hasBet = false;
+                    showNotification(`💥 Lost ${playerBet}⭐ - Plane crashed at ${currentMultiplier.toFixed(2)}x`, 'error');
+                }
+            }
+        }
+
+        function handleStateTransition(fromState, toState, data) {
+            const planeEl = document.getElementById('plane');
+            
+            switch (toState) {
+                case 'betting':
+                    showNotification('🎯 Place your bets!', 'info');
+                    break;
+                    
+                case 'flying':
+                    if (fromState === 'betting' || fromState === 'waiting') {
+                        // Plane takes off
+                        planeEl.classList.remove('waiting', 'crashed');
+                        planeEl.classList.add('takeoff');
+                        
+                        setTimeout(() => {
+                            planeEl.classList.remove('takeoff');
+                            planeEl.classList.add('flying');
+                        }, 1500);
+                        
+                        playSound('takeoff');
+                        showNotification('✈️ Plane taking off!', 'info');
+                    }
+                    break;
+                    
+                case 'crashed':
+                    // Plane crashes
+                    planeEl.classList.remove('flying', 'takeoff', 'waiting');
+                    planeEl.classList.add('crashed');
+                    
+                    playSound('crash');
+                    createExplosionEffect();
+                    showNotification(`💥 Crashed at ${(data.crashMultiplier || currentMultiplier).toFixed(2)}x`, 'error');
+                    break;
+                    
+                case 'waiting':
+                    planeEl.classList.remove('flying', 'crashed', 'takeoff');
+                    planeEl.classList.add('waiting');
+                    break;
+            }
+        }
+
+        // Notification system
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 255, 136, 0.9);
+                color: black;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: 600;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Mobile viewport fix
+        function setVH() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+
+        window.addEventListener('resize', setVH);
+        setVH();
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', init);
+
+        // Modal Functions
+        function openModal(modalId) {
+            closeMenu();
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function toggleMenu() {
+            const menu = document.getElementById('navMenu');
+            const overlay = document.getElementById('navOverlay');
+            menu.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            document.getElementById('navMenu').classList.remove('active');
+            document.getElementById('navOverlay').classList.remove('active');
+        }
+
+        // Tab Functions
+        function switchTab(tabName) {
+            const modal = event.target.closest('.modal');
+            const tabButtons = modal.querySelectorAll('.tab-btn');
+            const tabContents = modal.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            modal.querySelector(`#${tabName}`).classList.add('active');
+        }
+
+        // Deposit Functions
+        function depositStars() {
+            const amount = parseInt(document.getElementById('depositAmount').value);
+            const method = document.getElementById('depositMethod').value;
+            
+            if (!amount || amount <= 0) {
+                showNotification('Please enter a valid amount', 'error');
+                return;
+            }
+
+            if (amount < 100) {
+                showNotification('Minimum deposit is 100 stars', 'error');
+                return;
+            }
+
+            // Simulate deposit processing
+            showNotification(`Processing deposit of ${amount}⭐ via ${method}...`, 'warning');
+            
+            setTimeout(() => {
+                balance += amount;
+                updateDisplay();
+                addTransaction('deposit', amount, `Deposit via ${method}`);
+                showNotification(`Successfully deposited ${amount}⭐!`);
+                closeModal('depositModal');
+                document.getElementById('depositAmount').value = '';
+            }, 2000);
+        }
+
+        // Withdrawal Functions
+        function withdrawStars() {
+            const amount = parseInt(document.getElementById('withdrawAmount').value);
+            const method = document.getElementById('withdrawMethod').value;
+            const wallet = document.getElementById('withdrawWallet').value;
+            
+            if (!amount || amount <= 0) {
+                showNotification('Please enter a valid amount', 'error');
+                return;
+            }
+
+            if (amount > balance) {
+                showNotification('Insufficient balance', 'error');
+                return;
+            }
+
+            if (amount < 500) {
+                showNotification('Minimum withdrawal is 500 stars', 'error');
+                return;
+            }
+
+            if (!wallet) {
+                showNotification('Please enter wallet address', 'error');
+                return;
+            }
+
+            // Simulate withdrawal processing
+            showNotification(`Processing withdrawal of ${amount}⭐...`, 'warning');
+            
+            setTimeout(() => {
+                balance -= amount;
+                updateDisplay();
+                addTransaction('withdrawal', -amount, `Withdrawal to ${wallet.substring(0, 10)}...`);
+                showNotification(`Withdrawal of ${amount}⭐ submitted for processing!`);
+                closeModal('withdrawModal');
+                document.getElementById('withdrawAmount').value = '';
+                document.getElementById('withdrawWallet').value = '';
+            }, 2000);
+        }
+
+        // Transaction Management
+        let transactions = [];
+
+        function addTransaction(type, amount, description) {
+            const transaction = {
+                id: Date.now(),
+                type: type,
+                amount: amount,
+                description: description,
+                timestamp: new Date().toISOString(),
+                status: type === 'withdrawal' ? 'pending' : 'completed'
+            };
+            
+            transactions.unshift(transaction);
+            if (transactions.length > 50) {
+                transactions.pop();
+            }
+            
+            updateTransactionHistory();
+        }
+
+        function updateTransactionHistory() {
+            const container = document.getElementById('transactionsList');
+            container.innerHTML = '';
+            
+            transactions.forEach(tx => {
+                const item = document.createElement('div');
+                item.className = 'transaction-item';
+                
+                const isPositive = tx.amount > 0;
+                const date = new Date(tx.timestamp).toLocaleDateString();
+                const time = new Date(tx.timestamp).toLocaleTimeString();
+                
+                item.innerHTML = `
+                    <div class="transaction-header">
+                        <div class="transaction-type">${tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}</div>
+                        <div class="transaction-amount ${isPositive ? 'positive' : 'negative'}">
+                            ${isPositive ? '+' : ''}${tx.amount}⭐
+                        </div>
+                    </div>
+                    <div class="transaction-details">
+                        ${tx.description}<br>
+                        ${date} ${time} • ${tx.status}
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+
+        // Game History Management
+        let gameHistory = [];
+
+        function addGameResult(bet, multiplier, won) {
+            const result = {
+                id: Date.now(),
+                bet: bet,
+                multiplier: multiplier,
+                winAmount: won ? Math.floor(bet * multiplier) : 0,
+                timestamp: new Date().toISOString(),
+                won: won
+            };
+            
+            gameHistory.unshift(result);
+            if (gameHistory.length > 100) {
+                gameHistory.pop();
+            }
+            
+            updateGameHistory();
+        }
+
+        function updateGameHistory() {
+            const container = document.getElementById('gameHistoryList');
+            container.innerHTML = '';
+            
+            gameHistory.forEach(game => {
+                const item = document.createElement('div');
+                item.className = 'transaction-item';
+                
+                const date = new Date(game.timestamp).toLocaleDateString();
+                const time = new Date(game.timestamp).toLocaleTimeString();
+                
+                item.innerHTML = `
+                    <div class="transaction-header">
+                        <div class="transaction-type">Game Round</div>
+                        <div class="transaction-amount ${game.won ? 'positive' : 'negative'}">
+                            ${game.won ? '+' : '-'}${game.won ? game.winAmount : game.bet}⭐
+                        </div>
+                    </div>
+                    <div class="transaction-details">
+                        Bet: ${game.bet}⭐ • Multiplier: ${game.multiplier.toFixed(2)}x<br>
+                        ${date} ${time} • ${game.won ? 'Won' : 'Lost'}
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+
+        // Enhanced notification system
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideInNotification 0.3s ease reverse';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // Update the original cashout function to record game history
+        const originalCashout = cashout;
+        cashout = function() {
+            if (gameState !== 'flying' || !hasBet) {
+                return;
+            }
+            
+            const winAmount = Math.floor(playerBet * currentMultiplier);
+            balance += winAmount;
+            totalBet += playerBet;
+            totalWin += winAmount;
+            
+            // Record game result
+            addGameResult(playerBet, currentMultiplier, true);
+            addTransaction('win', winAmount, `Game win at ${currentMultiplier.toFixed(2)}x`);
+            
+            playerBet = 0;
+            hasBet = false;
+            
+            updateDisplay();
+            updateStats();
+            
+            showNotification(`Won ${winAmount}⭐ at ${currentMultiplier.toFixed(2)}x!`);
+        }
+
+        // Initialize sample data
+        function initializeSampleData() {
+            // Add some sample transactions
+            addTransaction('deposit', 1000, 'Initial deposit via Telegram Stars');
+            addTransaction('win', 150, 'Game win at 1.50x');
+            addTransaction('loss', -50, 'Game loss');
+            addTransaction('win', 300, 'Game win at 3.00x');
+            
+            // Add some sample game history
+            addGameResult(50, 1.50, true);
+            addGameResult(100, 0.85, false);
+            addGameResult(75, 3.20, true);
+            addGameResult(200, 1.05, false);
+        }
+
+        // Initialize sample data on load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initializeSampleData, 1000);
+        });
+    </script>
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">👤 Profile</h3>
+                <button class="modal-close" onclick="closeModal('profileModal')">×</button>
+            </div>
+            
+            <div class="profile-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="profileBalance">1000</div>
+                    <div class="stat-label">Current Balance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="profileGames">42</div>
+                    <div class="stat-label">Games Played</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="profileWins">28</div>
+                    <div class="stat-label">Games Won</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">66.7%</div>
+                    <div class="stat-label">Win Rate</div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-input" value="@aviator_player" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Player ID</label>
+                <input type="text" class="form-input" value="AP123456789" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Member Since</label>
+                <input type="text" class="form-input" value="September 2024" readonly>
             </div>
         </div>
     </div>
 
-    <div class="notification" id="notification"></div>
-
-    <script>
-        class AviatorGame {
-            constructor() {
-                this.socket = null;
-                this.gameState = 'waiting';
-                this.currentMultiplier = 1.00;
-                this.userBalance = 1000;
-                this.hasBet = false;
-                this.betAmount = 0;
-                this.telegramId = this.getTelegramId();
-                this.username = this.getUsername();
-                this.passengers = new Map();
-                this.gameHistory = [];
-                this.connectionStatus = 'disconnected';
-                this.reconnectAttempts = 0;
-                this.maxReconnectAttempts = 5;
-                this.countdownInterval = null;
-                
-                this.initializeSocket();
-                this.registerUser();
-                this.updateUI();
-                this.setupEventListeners();
-                this.initializeTelegramWebApp();
-            }
-
-            getTelegramId() {
-                // Try to get from Telegram WebApp first
-                if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-                    const user = window.Telegram.WebApp.initDataUnsafe?.user;
-                    if (user) {
-                        console.log('📱 Got Telegram user:', user);
-                        return user.id;
-                    }
-                }
-                
-                // Fallback to localStorage for testing
-                let storedId = localStorage.getItem('aviator_user_id');
-                if (!storedId) {
-                    storedId = Math.floor(Math.random() * 1000000);
-                    localStorage.setItem('aviator_user_id', storedId);
-                    console.log('🎯 Generated test user ID:', storedId);
-                }
-                return parseInt(storedId);
-            }
-
-            getUsername() {
-                if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-                    const user = window.Telegram.WebApp.initDataUnsafe?.user;
-                    if (user) {
-                        return user.username || user.first_name || `Player${this.telegramId}`;
-                    }
-                }
-                return localStorage.getItem('aviator_username') || `Player${this.telegramId}`;
-            }
-
-            initializeTelegramWebApp() {
-                if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-                    const tg = window.Telegram.WebApp;
-                    
-                    console.log('📱 Telegram WebApp detected');
-                    
-                    tg.ready();
-                    tg.expand();
-                    tg.enableClosingConfirmation();
-                    
-                    // Apply Telegram theme
-                    if (tg.colorScheme === 'dark') {
-                        document.body.classList.add('telegram-ui');
-                        document.documentElement.style.setProperty('--tg-color-scheme', 'dark');
-                    }
-
-                    // Store user info
-                    const user = tg.initDataUnsafe?.user;
-                    if (user) {
-                        localStorage.setItem('aviator_username', user.username || user.first_name);
-                        console.log('👤 Telegram user stored:', user.username || user.first_name);
-                    }
-
-                    // Setup haptic feedback
-                    this.hapticFeedback = tg.HapticFeedback;
-                } else {
-                    console.log('🌐 Running in web browser mode');
-                }
-            }
-
-            setupEventListeners() {
-                // Enter key to place bet/bail out
-                document.getElementById('betAmount').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        handleMainButton();
-                    }
-                });
-
-                // Input validation
-                document.getElementById('betAmount').addEventListener('input', (e) => {
-                    const value = parseInt(e.target.value);
-                    if (value > 1000) e.target.value = 1000;
-                    if (value < 1) e.target.value = 1;
-                });
-
-                // Handle page visibility changes
-                document.addEventListener('visibilitychange', () => {
-                    if (document.hidden) {
-                        console.log('📱 App hidden');
-                    } else {
-                        console.log('📱 App visible');
-                        this.refreshGameState();
-                    }
-                });
-
-                // Handle online/offline events
-                window.addEventListener('online', () => {
-                    console.log('🌐 Back online');
-                    if (this.socket && !this.socket.connected) {
-                        this.initializeSocket();
-                    }
-                });
-
-                window.addEventListener('offline', () => {
-                    console.log('📵 Gone offline');
-                    this.showNotification('Connection lost. Check your internet.', 'error');
-                });
-            }
-
-            async registerUser() {
-                try {
-                    const response = await fetch('/api/register', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            telegramId: this.telegramId,
-                            username: this.username,
-                            firstName: this.username.split('Player')[1] ? 'User' : this.username
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    if (data.success) {
-                        this.userBalance = data.user.balance;
-                        this.updateBalance();
-                        console.log('✅ User registered:', data.user);
-                        this.showNotification(`Welcome ${this.username}! 🎮`, 'success');
-                    }
-                } catch (error) {
-                    console.error('❌ Registration failed:', error);
-                    this.showNotification('Connection error. Please refresh.', 'error');
-                }
-            }
-
-            initializeSocket() {
-                console.log('🔌 Initializing socket connection...');
-                
-                if (this.socket) {
-                    this.socket.disconnect();
-                }
-                
-                // Initialize socket connection
-                this.socket = io({
-                    transports: ['websocket', 'polling'],
-                    timeout: 20000,
-                    reconnection: true,
-                    reconnectionDelay: 1000,
-                    reconnectionAttempts: this.maxReconnectAttempts
-                });
-
-                // Connection events
-                this.socket.on('connect', () => {
-                    console.log('✅ Connected to server');
-                    this.connectionStatus = 'connected';
-                    this.reconnectAttempts = 0;
-                    this.updateConnectionStatus();
-                    
-                    // Authenticate user
-                    this.socket.emit('authenticate', {
-                        telegramId: this.telegramId,
-                        username: this.username
-                    });
-                    
-                    this.showNotification('Connected to game! 🎮', 'success');
-                });
-
-                this.socket.on('disconnect', (reason) => {
-                    console.log('❌ Disconnected:', reason);
-                    this.connectionStatus = 'disconnected';
-                    this.updateConnectionStatus();
-                    
-                    if (reason !== 'io client disconnect') {
-                        this.showNotification('Connection lost. Reconnecting...', 'error');
-                    }
-                });
-
-                this.socket.on('reconnect', (attemptNumber) => {
-                    console.log('🔄 Reconnected to server (attempt', attemptNumber, ')');
-                    this.connectionStatus = 'connected';
-                    this.reconnectAttempts = 0;
-                    this.updateConnectionStatus();
-                    this.refreshGameState();
-                    this.showNotification('Reconnected! 🎮', 'success');
-                });
-
-                this.socket.on('reconnect_error', (error) => {
-                    this.reconnectAttempts++;
-                    console.log('❌ Reconnection failed:', error, 'Attempt:', this.reconnectAttempts);
-                    
-                    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                        this.showNotification('Connection failed. Please refresh the page.', 'error');
-                    }
-                });
-
-                // Game events
-                this.socket.on('gameState', (data) => {
-                    console.log('🎮 Game state received:', data);
-                    this.gameState = data.state || 'waiting';
-                    this.currentMultiplier = data.currentMultiplier || 1.00;
-                    this.updateUI();
-                    this.updateMultiplier();
-                    this.updateGameIndicator();
-                    
-                    // Update bet limits
-                    if (data.config) {
-                        const betInput = document.getElementById('betAmount');
-                        betInput.min = data.config.minBet || 1;
-                        betInput.max = data.config.maxBet || 1000;
-                    }
-                });
-
-                this.socket.on('bettingPhase', (data) => {
-                    console.log('💰 Betting phase started:', data);
-                    this.gameState = 'betting';
-                    this.hasBet = false;
-                    this.passengers.clear();
-                    this.updateUI();
-                    this.updatePlaneAnimation();
-                    this.updateGameIndicator();
-                    this.startCountdown(data.timeLeft);
-                    
-                    // Update bet limits
-                    if (data.minBet && data.maxBet) {
-                        const betInput = document.getElementById('betAmount');
-                        betInput.min = data.minBet;
-                        betInput.max = data.maxBet;
-                    }
-                });
-
-                this.socket.on('flightStarted', (data) => {
-                    console.log('🛫 Flight started:', data);
-                    this.gameState = 'playing';
-                    this.updateUI();
-                    this.updatePlaneAnimation();
-                    this.updateGameIndicator();
-                    this.hideCountdown();
-                    this.showNotification(data.message, 'info');
-                    
-                    if (this.hapticFeedback) {
-                        this.hapticFeedback.impactOccurred('light');
-                    }
-                });
-
-                this.socket.on('altitudeUpdate', (data) => {
-                    this.currentMultiplier = data.altitude;
-                    this.updateMultiplier();
-                    this.updatePlaneAnimation();
-                });
-
-                this.socket.on('planeCrashed', (data) => {
-                    console.log('💥 Plane crashed:', data);
-                    this.gameState = 'crashed';
-                    this.currentMultiplier = data.crashPoint;
-                    this.updateUI();
-                    this.updatePlaneAnimation();
-                    this.updateGameIndicator();
-                    this.addToHistory(data.crashPoint);
-                    this.showNotification(data.message, 'error');
-                    
-                    if (this.hapticFeedback) {
-                        this.hapticFeedback.impactOccurred('heavy');
-                    }
-                    
-                    // Update user balance from results
-                    const userResult = data.results.find(r => r.userId === this.telegramId);
-                    if (userResult && userResult.survived) {
-                        this.userBalance += userResult.payout || 0;
-                        this.showNotification(`Survived! Won ${userResult.payout} Stars! 🪂`, 'success');
-                    } else if (userResult) {
-                        this.showNotification(`Plane crashed! Lost ${userResult.bet} Stars 💥`, 'error');
-                    }
-                    this.updateBalance();
-                });
-
-                this.socket.on('ticketPurchased', (data) => {
-                    console.log('🎫 Ticket purchased:', data);
-                    this.passengers.set(data.userId, {
-                        username: data.username,
-                        amount: data.amount
-                    });
-                    this.updatePassengerList();
-                    
-                    if (data.userId !== this.telegramId) {
-                        this.showNotification(`${data.username} bought a ticket! ✈️`, 'info');
-                    }
-                });
-
-                this.socket.on('passengerBailedOut', (data) => {
-                    console.log('🪂 Passenger bailed out:', data);
-                    if (data.userId === this.telegramId) {
-                        this.hasBet = false;
-                        this.userBalance = data.newBalance || this.userBalance;
-                        this.updateBalance();
-                        this.showNotification(`Bailed out at ${data.altitude.toFixed(2)}x! 🪂`, 'success');
-                    } else {
-                        this.showNotification(`${data.username} bailed out at ${data.altitude.toFixed(2)}x!`, 'info');
-                    }
-                    this.updateUI();
-                });
-
-                // Admin notifications
-                this.socket.on('adminNotification', (data) => {
-                    console.log('📢 Admin notification:', data);
-                    this.showNotification(`📢 ${data.message}`, data.type || 'info');
-                });
-
-                // Error handling
-                this.socket.on('connect_error', (error) => {
-                    console.error('❌ Connection error:', error);
-                    this.connectionStatus = 'error';
-                    this.updateConnectionStatus();
-                });
-            }
-
-            refreshGameState() {
-                if (this.socket && this.socket.connected) {
-                    console.log('🔄 Refreshing game state...');
-                    // The server will send current state on reconnection automatically
-                }
-            }
-
-            updateConnectionStatus() {
-                const statusEl = document.getElementById('connectionStatus');
-                
-                switch (this.connectionStatus) {
-                    case 'connected':
-                        statusEl.textContent = '🟢 Live';
-                        statusEl.className = 'connection-status connected';
-                        break;
-                    case 'disconnected':
-                        statusEl.textContent = '🔴 Offline';
-                        statusEl.className = 'connection-status disconnected';
-                        break;
-                    case 'error':
-                        statusEl.textContent = '⚠️ Error';
-                        statusEl.className = 'connection-status disconnected';
-                        break;
-                    default:
-                        statusEl.textContent = '⏳ Connecting';
-                        statusEl.className = 'connection-status disconnected';
-                }
-            }
-
-            updateGameIndicator() {
-                const indicatorEl = document.getElementById('gameIndicator');
-                
-                switch (this.gameState) {
-                    case 'betting':
-                        indicatorEl.textContent = 'BOARDING';
-                        indicatorEl.className = 'game-indicator betting';
-                        indicatorEl.style.display = 'block';
-                        break;
-                    case 'playing':
-                        indicatorEl.textContent = 'FLYING';
-                        indicatorEl.className = 'game-indicator playing';
-                        indicatorEl.style.display = 'block';
-                        break;
-                    case 'crashed':
-                        indicatorEl.textContent = 'CRASHED';
-                        indicatorEl.className = 'game-indicator crashed';
-                        indicatorEl.style.display = 'block';
-                        setTimeout(() => {
-                            indicatorEl.style.display = 'none';
-                        }, 3000);
-                        break;
-                    default:
-                        indicatorEl.style.display = 'none';
-                }
-            }
-
-            async placeBet() {
-                const betAmount = parseInt(document.getElementById('betAmount').value);
-                
-                if (!betAmount || betAmount < 1) {
-                    this.showNotification('Please enter a valid bet amount!', 'error');
-                    return;
-                }
-
-                if (betAmount > this.userBalance) {
-                    this.showNotification('Insufficient balance!', 'error');
-                    return;
-                }
-
-                if (this.gameState !== 'betting') {
-                    this.showNotification('Betting phase has ended!', 'error');
-                    return;
-                }
-
-                if (this.hasBet) {
-                    this.showNotification('You already have a ticket!', 'error');
-                    return;
-                }
-
-                console.log('🎫 Placing bet:', betAmount);
-                
-                this.socket.emit('placeBet', {
-                    amount: betAmount,
-                    telegramId: this.telegramId
-                });
-
-                this.hasBet = true;
-                this.betAmount = betAmount;
-                this.userBalance -= betAmount;
-                this.updateBalance();
-                this.updateUI();
-                
-                if (this.hapticFeedback) {
-                    this.hapticFeedback.impactOccurred('light');
-                }
-            }
-
-            bailOut() {
-                if (!this.hasBet || this.gameState !== 'playing') {
-                    this.showNotification('Cannot bail out now!', 'error');
-                    return;
-                }
-
-                console.log('🪂 Bailing out at:', this.currentMultiplier);
-                
-                this.socket.emit('bailOut', {
-                    telegramId: this.telegramId,
-                    multiplier: this.currentMultiplier
-                });
-
-                if (this.hapticFeedback) {
-                    this.hapticFeedback.impactOccurred('medium');
-                }
-            }
-
-            updateUI() {
-                const mainButton = document.getElementById('mainButton');
-                const gameStatus = document.getElementById('gameStatus');
-                
-                switch (this.gameState) {
-                    case 'betting':
-                        if (this.hasBet) {
-                            mainButton.textContent = 'Ticket Purchased ✈️';
-                            mainButton.className = 'main-button bet-button';
-                            mainButton.disabled = true;
-                            gameStatus.textContent = 'Waiting for takeoff...';
-                            gameStatus.className = 'game-status betting-phase';
-                        } else {
-                            mainButton.textContent = 'Buy Ticket';
-                            mainButton.className = 'main-button bet-button';
-                            mainButton.disabled = false;
-                            gameStatus.textContent = 'Boarding passengers...';
-                            gameStatus.className = 'game-status betting-phase';
-                        }
-                        break;
-                        
-                    case 'playing':
-                        if (this.hasBet) {
-                            mainButton.textContent = `Bail Out (${this.currentMultiplier.toFixed(2)}x)`;
-                            mainButton.className = 'main-button cashout-button';
-                            mainButton.disabled = false;
-                            gameStatus.textContent = 'Flight in progress!';
-                            gameStatus.className = 'game-status playing-phase';
-                        } else {
-                            mainButton.textContent = 'Watching Flight';
-                            mainButton.className = 'main-button bet-button';
-                            mainButton.disabled = true;
-                            gameStatus.textContent = 'Flight in progress!';
-                            gameStatus.className = 'game-status playing-phase';
-                        }
-                        break;
-                        
-                    case 'crashed':
-                        mainButton.textContent = 'Plane Crashed!';
-                        mainButton.className = 'main-button bet-button';
-                        mainButton.disabled = true;
-                        gameStatus.textContent = 'Next flight starting soon...';
-                        gameStatus.className = 'game-status crashed-phase';
-                        this.hasBet = false;
-                        break;
-                        
-                    default:
-                        mainButton.textContent = 'Connecting...';
-                        mainButton.className = 'main-button bet-button';
-                        mainButton.disabled = true;
-                        gameStatus.textContent = 'Connecting to game...';
-                        gameStatus.className = 'game-status';
-                }
-            }
-
-            updateMultiplier() {
-                const multiplierEl = document.getElementById('multiplier');
-                multiplierEl.textContent = `${this.currentMultiplier.toFixed(2)}x`;
-                
-                if (this.gameState === 'crashed') {
-                    multiplierEl.classList.add('crashed');
-                    setTimeout(() => {
-                        multiplierEl.classList.remove('crashed');
-                    }, 500);
-                }
-            }
-
-            updateBalance() {
-                document.getElementById('balance').textContent = `${this.userBalance} ⭐`;
-            }
-
-            updatePlaneAnimation() {
-                const planeEl = document.getElementById('plane');
-                
-                // Remove existing classes
-                planeEl.className = 'plane';
-                
-                switch (this.gameState) {
-                    case 'betting':
-                        // Default animation
-                        break;
-                    case 'playing':
-                        planeEl.classList.add('flying');
-                        break;
-                    case 'crashed':
-                        planeEl.classList.add('crashed');
-                        break;
-                }
-            }
-
-            updatePassengerList() {
-                const passengerListEl = document.getElementById('passengerList');
-                
-                if (this.passengers.size === 0) {
-                    passengerListEl.style.display = 'none';
-                    return;
-                }
-                
-                passengerListEl.style.display = 'block';
-                
-                // Clear existing passengers (except header)
-                const existingItems = passengerListEl.querySelectorAll('.passenger-item');
-                existingItems.forEach(item => item.remove());
-                
-                // Add current passengers
-                this.passengers.forEach((passenger, userId) => {
-                    const item = document.createElement('div');
-                    item.className = 'passenger-item';
-                    item.innerHTML = `
-                        <span>${passenger.username}</span>
-                        <span>${passenger.amount}⭐</span>
-                    `;
-                    passengerListEl.appendChild(item);
-                });
-            }
-
-            addToHistory(crashPoint) {
-                this.gameHistory.unshift(crashPoint);
-                if (this.gameHistory.length > 10) {
-                    this.gameHistory.pop();
-                }
-                
-                const historyEl = document.getElementById('historyItems');
-                historyEl.innerHTML = '';
-                
-                this.gameHistory.forEach(point => {
-                    const item = document.createElement('div');
-                    item.className = 'history-item';
-                    item.textContent = `${point.toFixed(2)}x`;
-                    
-                    if (point < 2) {
-                        item.classList.add('low');
-                    } else if (point < 5) {
-                        item.classList.add('medium');
-                    } else {
-                        item.classList.add('high');
-                    }
-                    
-                    historyEl.appendChild(item);
-                });
-            }
-
-            startCountdown(seconds) {
-                const countdownEl = document.getElementById('countdown');
-                countdownEl.style.display = 'block';
-                
-                if (this.countdownInterval) {
-                    clearInterval(this.countdownInterval);
-                }
-                
-                let timeLeft = seconds;
-                countdownEl.textContent = `Takeoff in ${timeLeft}s`;
-                
-                this.countdownInterval = setInterval(() => {
-                    timeLeft--;
-                    if (timeLeft <= 0) {
-                        this.hideCountdown();
-                        return;
-                    }
-                    countdownEl.textContent = `Takeoff in ${timeLeft}s`;
-                }, 1000);
-            }
-
-            hideCountdown() {
-                const countdownEl = document.getElementById('countdown');
-                countdownEl.style.display = 'none';
-                
-                if (this.countdownInterval) {
-                    clearInterval(this.countdownInterval);
-                    this.countdownInterval = null;
-                }
-            }
-
-            showNotification(message, type = 'info') {
-                const notification = document.getElementById('notification');
-                notification.textContent = message;
-                notification.className = `notification ${type}`;
-                notification.classList.add('show');
-                
-                setTimeout(() => {
-                    notification.classList.remove('show');
-                }, 3000);
-            }
-        }
-
-        // Global functions for HTML onclick handlers
-        function handleMainButton() {
-            if (window.game) {
-                if (window.game.gameState === 'betting' && !window.game.hasBet) {
-                    window.game.placeBet();
-                } else if (window.game.gameState === 'playing' && window.game.hasBet) {
-                    window.game.bailOut();
-                }
-            }
-        }
-
-        function setBetAmount(amount) {
-            document.getElementById('betAmount').value = amount;
-        }
-
-        // Initialize game when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('🎮 Initializing Aviator Game...');
-            window.game = new AviatorGame();
-        });
-
-        // Handle Telegram WebApp events
-        if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-            window.Telegram.WebApp.onEvent('mainButtonClicked', () => {
-                handleMainButton();
-            });
+    <!-- Deposit Modal -->
+    <div class="modal" id="depositModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">💰 Deposit Stars</h3>
+                <button class="modal-close" onclick="closeModal('depositModal')">×</button>
+            </div>
             
-            window.Telegram.WebApp.onEvent('backButtonClicked', () => {
-                window.Telegram.WebApp.close();
-            });
-        }
+            <div class="form-group">
+                <label class="form-label">Amount (Stars)</label>
+                <input type="number" class="form-input" id="depositAmount" placeholder="Enter amount" min="100">
+                <small style="color: rgba(255,255,255,0.6); font-size: 12px;">Minimum deposit: 100 stars</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Payment Method</label>
+                <select class="form-input" id="depositMethod">
+                    <option value="telegram_stars">Telegram Stars</option>
+                    <option value="crypto">Cryptocurrency</option>
+                    <option value="card">Credit/Debit Card</option>
+                </select>
+            </div>
+            
+            <button class="btn" onclick="depositStars()">Deposit Stars</button>
+        </div>
+    </div>
 
-        // Service Worker for offline functionality (optional)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(err => {
-                console.log('Service worker registration failed:', err);
-            });
-        }
+    <!-- Withdraw Modal -->
+    <div class="modal" id="withdrawModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">💸 Withdraw</h3>
+                <button class="modal-close" onclick="closeModal('withdrawModal')">×</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Amount (Stars)</label>
+                <input type="number" class="form-input" id="withdrawAmount" placeholder="Enter amount" min="500">
+                <small style="color: rgba(255,255,255,0.6); font-size: 12px;">Minimum withdrawal: 500 stars</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Withdrawal Method</label>
+                <select class="form-input" id="withdrawMethod">
+                    <option value="telegram_stars">Telegram Stars</option>
+                    <option value="crypto">Cryptocurrency</option>
+                    <option value="bank">Bank Transfer</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Wallet Address / Account</label>
+                <input type="text" class="form-input" id="withdrawWallet" placeholder="Enter wallet address or account">
+            </div>
+            
+            <button class="btn" onclick="withdrawStars()">Submit Withdrawal</button>
+        </div>
+    </div>
 
-        // Handle app installation (PWA)
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-        });
+    <!-- Game History Modal -->
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📊 Game History</h3>
+                <button class="modal-close" onclick="closeModal('historyModal')">×</button>
+            </div>
+            
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('gameHistoryTab')">Recent Games</button>
+                <button class="tab-btn" onclick="switchTab('statsTab')">Statistics</button>
+            </div>
+            
+            <div id="gameHistoryTab" class="tab-content active">
+                <div id="gameHistoryList">
+                    <!-- Game history items will be populated here -->
+                </div>
+            </div>
+            
+            <div id="statsTab" class="tab-content">
+                <div class="profile-stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalBetStat">2500</div>
+                        <div class="stat-label">Total Bet</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalWinStat">2850</div>
+                        <div class="stat-label">Total Won</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="biggestWin">750</div>
+                        <div class="stat-label">Biggest Win</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="bestMultiplier">15.5x</div>
+                        <div class="stat-label">Best Multiplier</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // Error handling
-        window.addEventListener('error', (e) => {
-            console.error('Global error:', e.error);
-            if (window.game) {
-                window.game.showNotification('An error occurred. Please refresh.', 'error');
-            }
-        });
+    <!-- Transactions Modal -->
+    <div class="modal" id="transactionsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📋 Transaction History</h3>
+                <button class="modal-close" onclick="closeModal('transactionsModal')">×</button>
+            </div>
+            
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('allTransactions')">All</button>
+                <button class="tab-btn" onclick="switchTab('deposits')">Deposits</button>
+                <button class="tab-btn" onclick="switchTab('withdrawals')">Withdrawals</button>
+                <button class="tab-btn" onclick="switchTab('games')">Games</button>
+            </div>
+            
+            <div id="allTransactions" class="tab-content active">
+                <div id="transactionsList">
+                    <!-- Transaction items will be populated here -->
+                </div>
+            </div>
+            
+            <div id="deposits" class="tab-content">
+                <p style="text-align: center; color: rgba(255,255,255,0.6); padding: 20px;">
+                    Deposit transactions will appear here
+                </p>
+            </div>
+            
+            <div id="withdrawals" class="tab-content">
+                <p style="text-align: center; color: rgba(255,255,255,0.6); padding: 20px;">
+                    Withdrawal transactions will appear here
+                </p>
+            </div>
+            
+            <div id="games" class="tab-content">
+                <p style="text-align: center; color: rgba(255,255,255,0.6); padding: 20px;">
+                    Game transactions will appear here
+                </p>
+            </div>
+        </div>
+    </div>
 
-        window.addEventListener('unhandledrejection', (e) => {
-            console.error('Unhandled promise rejection:', e.reason);
-            if (window.game) {
-                window.game.showNotification('Connection error occurred.', 'error');
-            }
-        });
-    </script>
+    <!-- Notifications Modal -->
+    <div class="modal" id="notificationsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🔔 Notifications</h3>
+                <button class="modal-close" onclick="closeModal('notificationsModal')">×</button>
+            </div>
+            
+            <div class="transaction-item">
+                <div class="transaction-header">
+                    <div class="transaction-type">Welcome Bonus</div>
+                    <div class="transaction-amount positive">+500⭐</div>
+                </div>
+                <div class="transaction-details">
+                    Welcome to Aviator! Enjoy your bonus stars.<br>
+                    Today • New
+                </div>
+            </div>
+            
+            <div class="transaction-item">
+                <div class="transaction-header">
+                    <div class="transaction-type">Withdrawal Processed</div>
+                    <div class="transaction-amount">✅</div>
+                </div>
+                <div class="transaction-details">
+                    Your withdrawal of 1000⭐ has been processed successfully.<br>
+                    Yesterday • Read
+                </div>
+            </div>
+            
+            <div class="transaction-item">
+                <div class="transaction-header">
+                    <div class="transaction-type">Big Win!</div>
+                    <div class="transaction-amount positive">+2500⭐</div>
+                </div>
+                <div class="transaction-details">
+                    Congratulations on your big win at 5.0x multiplier!<br>
+                    2 days ago • Read
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">⚙️ Settings</h3>
+                <button class="modal-close" onclick="closeModal('settingsModal')">×</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" checked> Sound Effects
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" checked> Push Notifications
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox"> Auto Cash Out
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Auto Cash Out Multiplier</label>
+                <input type="number" class="form-input" placeholder="e.g., 2.0" step="0.1" min="1.1">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Language</label>
+                <select class="form-input">
+                    <option value="en">English</option>
+                    <option value="ru">Русский</option>
+                    <option value="es">Español</option>
+                </select>
+            </div>
+            
+            <button class="btn">Save Settings</button>
+        </div>
+    </div>
+
 </body>
 </html>
